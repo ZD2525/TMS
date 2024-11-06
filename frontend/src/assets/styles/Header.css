@@ -1,0 +1,63 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background-color: #add8e6;
+  padding: 10px 20px;
+  margin: 0;
+  box-sizing: border-box;
+  position: fixed; /* Keeps the header at the top */
+  top: 0;
+  left: 0;
+  height: 60px; /* Set a consistent height for alignment */
+  z-index: 1000; /* Ensures it stays above other content */
+}
+
+.welcome {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Add equal spacing between nav items */
+}
+
+nav a {
+  text-decoration: none;
+  color: #333;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+nav a.active {
+  text-decoration: underline;
+}
+
+nav span {
+  margin: 0 8px;
+  color: #333;
+  font-weight: bold;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.header-buttons button {
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.header-buttons button:hover {
+  background-color: #e0e0e0;
+}
