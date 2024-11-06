@@ -148,8 +148,16 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
       setEditingUser(null) // Exits edit mode
       setEditFormData({})
     } catch (error) {
-      const backendMessage = error.response?.data?.error || "An error occurred while updating the user."
-      showMessageWithTimeout(setErrorMessage, backendMessage)
+      // Check if there is a validation error
+      const backendErrors = error.response?.data?.details
+      if (backendErrors && backendErrors.length > 0) {
+        // Extract each error message and join them
+        const errorMessage = backendErrors.map(err => err.msg).join(" ")
+        showMessageWithTimeout(setErrorMessage, errorMessage)
+      } else {
+        const backendMessage = error.response?.data?.error || "An error occurred while updating the user."
+        showMessageWithTimeout(setErrorMessage, backendMessage)
+      }
     }
   }
 

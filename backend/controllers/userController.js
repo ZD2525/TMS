@@ -368,7 +368,7 @@ exports.editUser = async (req, res) => {
 
   // Validate email format
   if (email && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-    validationErrors.push({ msg: "Invalid email format", param: "email" })
+    validationErrors.push({ msg: "Email format entered must match the pattern username@domain.com", param: "email" })
   }
 
   // Validate password complexity
