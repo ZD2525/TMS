@@ -144,8 +144,8 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
       setEditingUser(null)
       setEditFormData({})
     } catch (error) {
-      const backendErrors = error.response?.data?.details
-      const errorMessage = backendErrors ? backendErrors.map(err => err.msg).join(" ") : "Error updating user."
+      const backendErrors = error.response?.data?.details || []
+      const errorMessage = backendErrors.length > 0 ? backendErrors.map(err => err.msg).join(", ") : "Error updating user."
       showMessageWithTimeout(setErrorMessage, errorMessage)
     }
   }

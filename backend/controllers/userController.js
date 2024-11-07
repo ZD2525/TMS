@@ -97,7 +97,7 @@ exports.loginUser = async (req, res) => {
 }
 
 // Logout function to clear the JWT cookie
-exports.logoutUser = (req, res) => {
+exports.logoutUser = (_req, res) => {
   res.clearCookie("token").json({ message: "Logout successful" })
 }
 
@@ -129,8 +129,7 @@ exports.getAllUsers = [
         email: user.email,
         accountStatus: user.accountStatus,
         password: "********", // Masked password
-        groups: user.user_groups ? user.user_groups.split(",") : [],
-        canEdit: user.username !== "admin" // Hardcoded admin cannot be edited
+        groups: user.user_groups ? user.user_groups.split(",") : []
       }))
 
       res.json(userData)
