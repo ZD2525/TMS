@@ -7,8 +7,7 @@ const verifyToken = (req, res, next) => {
   const token = req.cookies.token
 
   if (!token) {
-    console.log("Access denied: No token provided.")
-    return res.status(401).json({ redirect: "/login" })
+    return res.status(401).json({ error: "No token provided." })
   }
 
   try {
@@ -17,15 +16,13 @@ const verifyToken = (req, res, next) => {
     const requestBrowserType = req.headers["user-agent"]
 
     if (decoded.ipAddress !== requestIpAddress || decoded.browserType !== requestBrowserType) {
-      console.log("Access denied: IP address or browser type mismatch.")
-      return res.status(401).json({ redirect: "/login" })
+      return res.status(401).json({ error: "IP address or browser type mismatch" })
     }
 
     req.user = decoded
     next()
   } catch (err) {
-    console.error("Token verification failed:", err)
-    return res.status(401).json({ redirect: "/login" })
+    return res.status(401).json({ error: "Token verification failed" })
   }
 }
 
@@ -49,7 +46,6 @@ const requireAdmin = async (req, res, next) => {
     const isAdmin = await checkGroup(username, "admin")
 
     if (!isAdmin) {
-      console.log("Access forbidden: User is not an admin.")
       return res.status(403).json({ error: "Access forbidden. Admins only." })
     }
 
