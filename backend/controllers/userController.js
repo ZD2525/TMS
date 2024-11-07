@@ -261,7 +261,6 @@ exports.createGroup = [
 ]
 
 // Retrieve a specific user's details by username
-// Retrieve a specific user's details by username
 exports.getUserByUsername = async (req, res) => {
   const { username } = req.body
 
