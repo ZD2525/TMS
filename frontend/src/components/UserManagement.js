@@ -84,13 +84,6 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
     }
   }
 
-  // Handles redirection based on error status
-  const handleUnauthorizedAccess = status => {
-    if (status === 401 || status === 403) {
-      navigate("/login") // Redirects to login if unauthorized or forbidden
-    }
-  }
-
   // Display temporary message
   const showMessageWithTimeout = (setterFunction, message, duration = 2000) => {
     setterFunction(message)
