@@ -26,7 +26,7 @@ const App = () => {
   const fetchUserProfile = useCallback(async () => {
     try {
       // Sends GET request to fetch profile information
-      const response = await axios.get("http://localhost:3000/editprofile")
+      const response = await axios.get("http://localhost:3000/getprofile")
       setUsername(response.data.username) // Sets the username from response data
       setIsAdmin(response.data.isAdmin) // Sets the admin status from response data
       setIsAuthenticated(true) // Sets user as authenticated

@@ -11,17 +11,18 @@ router.post("/logout", userController.logoutUser)
 router.use(verifyToken)
 
 // Authenticated routes
-router.route("/editprofile").get(userController.getProfile).put(userController.updateProfile)
+router.get("/getprofile", userController.getProfile)
+router.put("/updateprofile", userController.updateProfile)
 
 // requireAdmin used for all routes that follow
 router.use(requireAdmin)
 
 // Admin-Protected Routes
-router.route("/usermanagement").get(userController.getUserManagement).post(userController.createUser)
+router.get("/getallusers", userController.getAllUsers)
+router.post("/createuser", userController.createUser)
 router.get("/groups", userController.getGroups)
-router.post("/create-group", userController.createGroup)
-router.post("/get-user", userController.getUserByUsername)
-router.put("/update-user", userController.editUser)
-router.delete("/remove-user-group", userController.removeUserGroup)
+router.post("/creategroup", userController.createGroup)
+router.post("/getuserbyusername", userController.getUserByUsername)
+router.put("/updateuser", userController.updateUser)
 
 module.exports = router

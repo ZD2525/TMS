@@ -105,7 +105,7 @@ exports.logoutUser = (req, res) => {
 }
 
 // Get all users for user management
-exports.getUserManagement = [
+exports.getAllUsers = [
   async (_req, res) => {
     try {
       // Query to fetch all users and their groups
@@ -268,39 +268,6 @@ exports.createGroup = [
   }
 ]
 
-// Remove a group from a user, with checks to prevent removing the hardcoded admin from admin group
-exports.removeUserGroup = async (req, res) => {
-  const { username, group } = req.body
-
-  if (username === "admin" && group === "admin") {
-    return res.status(403).json({ error: "The admin cannot be removed from the admin group." })
-  }
-
-  try {
-    const userExistsQuery = "SELECT * FROM Accounts WHERE username = ?"
-    const [userExists] = await db.query(userExistsQuery, [username])
-
-    if (!userExists.length) {
-      return res.status(404).json({ error: "User not found" })
-    }
-
-    const groupExistsQuery = "SELECT * FROM UserGroup WHERE user_group = ? AND username = ?"
-    const [groupExists] = await db.query(groupExistsQuery, [group, username])
-
-    if (!groupExists.length) {
-      return res.status(404).json({ error: "Group not found for this user" })
-    }
-
-    const deleteGroupQuery = "DELETE FROM UserGroup WHERE username = ? AND user_group = ?"
-    await db.query(deleteGroupQuery, [username, group])
-
-    res.status(200).json({ message: `Removed ${group} group from user ${username}` })
-  } catch (error) {
-    console.error("Error removing user group:", error)
-    res.status(500).json({ error: "An error occurred while removing the user from the group" })
-  }
-}
-
 // Retrieve a specific user's details by username
 exports.getUserByUsername = async (req, res) => {
   const { username } = req.body
@@ -355,16 +322,11 @@ exports.getGroups = async (req, res) => {
   }
 }
 
-// Admin-only edit user functionality
-exports.editUser = async (req, res) => {
+// Admin-only update user functionality
+exports.updateUser = async (req, res) => {
   const { username, email, accountStatus, groups, password } = req.body
 
   const validationErrors = []
-
-  // Validate account status
-  if (accountStatus && !["Active", "Disabled"].includes(accountStatus)) {
-    validationErrors.push({ msg: "Invalid account status.", param: "accountStatus" })
-  }
 
   // Validate email format
   if (email && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {

@@ -21,7 +21,7 @@ const EditProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/editprofile")
+        const response = await axios.get("http://localhost:3000/getprofile")
         setCurrentEmail(response.data.email || "No Email") // Sets the current email if available
       } catch (error) {
         console.error("Error fetching profile:", error)
@@ -41,7 +41,7 @@ const EditProfile = () => {
 
     try {
       // Sends a PUT request to update the user's profile
-      await axios.put("http://localhost:3000/editprofile", {
+      await axios.put("http://localhost:3000/updateprofile", {
         email: newEmail,
         newPassword
       })

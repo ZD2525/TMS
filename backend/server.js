@@ -20,7 +20,7 @@ app.use(
 
 app.use(express.json())
 
-app.use("/", userRoutes)
+app.use(userRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

@@ -12,7 +12,7 @@ const Header = ({ username, isAdmin, handleLogout }) => {
   const checkAdminStatus = async () => {
     try {
       // Sends a GET request to the backend to check the account status
-      const response = await axios.get("http://localhost:3000/editprofile")
+      const response = await axios.get("http://localhost:3000/getprofile")
       const { accountStatus } = response.data
 
       // Logs the user out if their account is not active

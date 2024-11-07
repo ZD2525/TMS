@@ -13,7 +13,6 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET)
-
     const requestIpAddress = req.ip
     const requestBrowserType = req.headers["user-agent"]
 

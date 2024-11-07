@@ -43,7 +43,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
   // Fetches all users from the backend
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/usermanagement")
+      const response = await axios.get("http://localhost:3000/getallusers")
       setUsers(response.data || []) // Sets the user data in state
     } catch (error) {
       handleUnauthorizedAccess(error.response?.status) // Handles unauthorized access
@@ -110,7 +110,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     await validateAdminStatus()
     try {
       // Fetches details of the selected user
-      const response = await axios.post("http://localhost:3000/get-user", { username: user.username })
+      const response = await axios.post("http://localhost:3000/getuserbyusername", { username: user.username })
       if (response.data) {
         setEditingUser(user.username) // Sets the current user in edit mode
         setEditFormData({
@@ -142,7 +142,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }
 
     try {
-      await axios.put("http://localhost:3000/update-user", payload)
+      await axios.put("http://localhost:3000/updateuser", payload)
       showMessageWithTimeout(setSuccessMessage, "User updated successfully.")
       await fetchUsers() // Refreshes the user list after saving
       setEditingUser(null) // Exits edit mode
@@ -174,7 +174,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     setErrorMessage("")
     setSuccessMessage("")
     try {
-      await axios.post("http://localhost:3000/create-group", { group: newGroup })
+      await axios.post("http://localhost:3000/creategroup", { group: newGroup })
       showMessageWithTimeout(setSuccessMessage, "Group created successfully.")
       fetchGroups() // Refreshes the group list
       setNewGroup("") // Clears the input
@@ -194,7 +194,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
       // Converts group options to an array of strings
       const groups = newUser.group.map(option => (typeof option === "string" ? option : option.value))
 
-      await axios.post("http://localhost:3000/usermanagement", {
+      await axios.post("http://localhost:3000/createuser", {
         ...newUser,
         group: groups
       })
