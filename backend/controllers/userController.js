@@ -5,6 +5,7 @@ const { body, validationResult } = require("express-validator")
 const JWT_SECRET = process.env.JWT_SECRET
 
 // Login function to authenticate a user and issue a JWT token
+// Login function to authenticate a user and issue a JWT token
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body
 
@@ -17,32 +18,19 @@ exports.loginUser = async (req, res) => {
   }
 
   try {
-    // Query to retrieve user details and groups
-    const query = `
-      SELECT 
-        Accounts.*, 
-        GROUP_CONCAT(UserGroup.user_group) AS user_groups 
-      FROM 
-        Accounts 
-      LEFT JOIN 
-        UserGroup 
-        ON Accounts.username = UserGroup.username 
-      WHERE 
-        Accounts.username = ? 
-      GROUP BY 
-        Accounts.username
-    `
-    const [results] = await db.query(query, [username])
+    // Query to retrieve user details
+    const userQuery = "SELECT * FROM Accounts WHERE username = ?"
+    const [userResults] = await db.query(userQuery, [username])
 
     // Check if user exists
-    if (results.length === 0) {
+    if (userResults.length === 0) {
       return res.status(401).json({
         error: "Invalid Credentials.",
         details: [{ msg: "Username or password is incorrect" }]
       })
     }
 
-    const user = results[0]
+    const user = userResults[0]
 
     // Verify account status
     if (user.accountStatus !== "Active") {
@@ -60,6 +48,11 @@ exports.loginUser = async (req, res) => {
         details: [{ msg: "Username or password is incorrect" }]
       })
     }
+
+    // Retrieve user groups in a separate query
+    const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
+    const [groupResults] = await db.query(groupQuery, [username])
+    const userGroups = groupResults.map(row => row.user_group)
 
     // Retrieve IP and browser information for the token
     const ipAddress = req.ip
@@ -88,7 +81,7 @@ exports.loginUser = async (req, res) => {
       })
       .json({
         message: "Login Success",
-        user: { username: user.username, email: user.email }
+        user: { username: user.username, email: user.email, groups: userGroups } // return user groups
       })
   } catch (error) {
     console.error("Login Error:", error)
@@ -102,35 +95,38 @@ exports.logoutUser = (_req, res) => {
 }
 
 // Get all users for user management
+// Get all users for user management
 exports.getAllUsers = [
   async (_req, res) => {
     try {
-      // Query to fetch all users and their groups
-      const query = `
+      // Query to fetch all users
+      const userQuery = `
         SELECT 
-          Accounts.username, 
-          Accounts.email, 
-          Accounts.accountStatus, 
-          GROUP_CONCAT(UserGroup.user_group) AS user_groups 
+          username, 
+          email, 
+          accountStatus 
         FROM 
-          Accounts 
-        LEFT JOIN 
-          UserGroup 
-        ON 
-          Accounts.username = UserGroup.username
-        GROUP BY 
-          Accounts.username
+          Accounts
       `
-      const [results] = await db.query(query)
+      const [userResults] = await db.query(userQuery)
 
-      // Format user data for response
-      const userData = results.map(user => ({
-        username: user.username,
-        email: user.email,
-        accountStatus: user.accountStatus,
-        password: "********", // Masked password
-        groups: user.user_groups ? user.user_groups.split(",") : []
-      }))
+      // Prepare an array to store the user data with groups
+      const userData = []
+
+      // Fetch groups for each user
+      for (const user of userResults) {
+        const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
+        const [groupResults] = await db.query(groupQuery, [user.username])
+        const groups = groupResults.map(row => row.user_group)
+
+        userData.push({
+          username: user.username,
+          email: user.email,
+          accountStatus: user.accountStatus,
+          password: "********", // Masked password
+          groups
+        })
+      }
 
       res.json(userData)
     } catch (error) {
@@ -265,39 +261,35 @@ exports.createGroup = [
 ]
 
 // Retrieve a specific user's details by username
+// Retrieve a specific user's details by username
 exports.getUserByUsername = async (req, res) => {
   const { username } = req.body
 
   try {
-    const query = `
-      SELECT 
-        Accounts.username, 
-        Accounts.email, 
-        Accounts.accountStatus, 
-        GROUP_CONCAT(UserGroup.user_group) AS user_groups 
-      FROM 
-        Accounts 
-      LEFT JOIN 
-        UserGroup 
-      ON 
-        Accounts.username = UserGroup.username 
-      WHERE 
-        Accounts.username = ? 
-      GROUP BY 
-        Accounts.username
-    `
-    const [results] = await db.query(query, [username])
+    // First, retrieve user details from the Accounts table
+    const userQuery = "SELECT username, email, accountStatus FROM Accounts WHERE username = ?"
+    const [userResults] = await db.query(userQuery, [username])
 
-    if (results.length === 0) {
+    // Check if user exists
+    if (userResults.length === 0) {
       return res.status(404).json({ error: "User not found" })
     }
 
-    const user = results[0]
+    const user = userResults[0]
+
+    // Next, retrieve user groups from the UserGroup table
+    const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
+    const [groupResults] = await db.query(groupQuery, [username])
+
+    // Extract groups into an array
+    const groups = groupResults.map(row => row.user_group)
+
+    // Send the response with user details and groups
     res.json({
       username: user.username,
       email: user.email,
       accountStatus: user.accountStatus,
-      groups: user.user_groups ? user.user_groups.split(",") : []
+      groups // no need to split here since we directly map the results
     })
   } catch (error) {
     console.error("Error fetching user by username:", error)
@@ -306,7 +298,7 @@ exports.getUserByUsername = async (req, res) => {
 }
 
 // Retrieve all available groups
-exports.getGroups = async (req, res) => {
+exports.getGroups = async (_req, res) => {
   try {
     const query = "SELECT DISTINCT user_group FROM UserGroup"
     const [results] = await db.query(query)
