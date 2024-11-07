@@ -273,7 +273,7 @@ exports.removeUserGroup = async (req, res) => {
   const { username, group } = req.body
 
   if (username === "admin" && group === "admin") {
-    return res.status(403).json({ error: "The hardcoded admin cannot be removed from the admin group." })
+    return res.status(403).json({ error: "The admin cannot be removed from the admin group." })
   }
 
   try {
@@ -394,7 +394,7 @@ exports.editUser = async (req, res) => {
 
     if (username === "admin" && (!groups || !groups.includes("admin") || accountStatus === "Disabled")) {
       return res.status(403).json({
-        error: "The hardcoded admin must remain in the admin group and cannot be disabled."
+        error: "The admin must remain in the admin group and cannot be disabled."
       })
     }
 
