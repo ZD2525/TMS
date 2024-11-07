@@ -7,46 +7,73 @@ import "../assets/styles/UserManagement.css"
 
 axios.defaults.withCredentials = true
 
-const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) => {
-  // State variables for user, group, and form data management
+const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) => {
   const [users, setUsers] = useState([]) // List of all users
   const [groups, setGroups] = useState([]) // List of all groups
   const [newGroup, setNewGroup] = useState("") // Input value for creating a new group
   const [newUser, setNewUser] = useState({
-    // Form data for creating a new user
     username: "",
     email: "",
     password: "",
     group: [],
     accountStatus: "Active"
   })
-  const [editingUser, setEditingUser] = useState(null) // Stores the username of the user being edited
-  const [editFormData, setEditFormData] = useState({}) // Form data for editing an existing user
-  const [errorMessage, setErrorMessage] = useState("") // Error message displayed in the UI
-  const [successMessage, setSuccessMessage] = useState("") // Success message displayed in the UI
+  const [editingUser, setEditingUser] = useState(null) // Username of the user being edited
+  const [editFormData, setEditFormData] = useState({}) // Form data for editing a user
+  const [errorMessage, setErrorMessage] = useState("") // Error message in UI
+  const [successMessage, setSuccessMessage] = useState("") // Success message in UI
 
-  const navigate = useNavigate() // Navigation hook for programmatic redirection
+  const navigate = useNavigate() // Navigation hook
 
-  // Effect hook that runs on component mount and whenever `isAdmin` changes
-  useEffect(() => {
-    if (!isAdmin) {
-      // Redirects non-admin users to the task management page
-      console.log("Non-admin access detected. Redirecting...")
-      navigate("/taskmanagementsystem")
-      return
+  // Function to check if the user is still an admin and active
+  const validateAdminStatus = async () => {
+    try {
+      const profile = await fetchUserProfile()
+      if (!profile) {
+        console.warn("Profile data is missing or fetch failed. Redirecting...")
+        handleLogout() // This will log the user out if the profile fetch fails
+        return
+      }
+      if (!profile.isAdmin) {
+        console.warn("User no longer has admin privileges. Redirecting to task management...")
+        navigate("/taskmanagementsystem")
+        return
+      }
+      if (profile.accountStatus !== "Active") {
+        console.warn("User account is disabled. Logging out...")
+        handleLogout()
+      }
+    } catch (error) {
+      console.error("Error validating admin status:", error)
+      handleLogout() // Fallback logout in case of errors
     }
-    fetchUserProfile() // Fetches the current user profile to check session
-    fetchUsers() // Fetches all users
-    fetchGroups() // Fetches all groups
-  }, [isAdmin, fetchUserProfile, navigate])
+  }
+
+  // Fetch initial data on component mount
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        await fetchUserProfile() // Verify user session
+        await fetchUsers() // Fetch all users
+        await fetchGroups() // Fetch all groups
+      } catch (error) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          navigate("/login") // Redirect based on response
+        } else {
+          console.error("Failed to initialize data:", error)
+        }
+      }
+    }
+    initializeData()
+  }, [fetchUserProfile, navigate])
 
   // Fetches all users from the backend
   const fetchUsers = async () => {
     try {
       const response = await axios.get("http://localhost:3000/getallusers")
-      setUsers(response.data || []) // Sets the user data in state
+      setUsers(response.data || [])
     } catch (error) {
-      handleUnauthorizedAccess(error.response?.status) // Handles unauthorized access
+      handleUnauthorizedAccess(error.response?.status)
     }
   }
 
@@ -54,50 +81,20 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
   const fetchGroups = async () => {
     try {
       const response = await axios.get("http://localhost:3000/groups")
-      // Maps each group to an object suitable for `react-select`
       setGroups(response.data?.map(group => ({ value: group, label: group })) || [])
     } catch (error) {
       handleUnauthorizedAccess(error.response?.status)
     }
   }
 
-  // Handles redirection based on the error status
+  // Handles redirection based on error status
   const handleUnauthorizedAccess = status => {
-    if (status === 401) {
-      navigate("/login") // Redirects to login if user is unauthorized
-    } else if (status === 403) {
-      navigate("/taskmanagementsystem") // Redirects to task management if access is forbidden
+    if (status === 401 || status === 403) {
+      navigate("/login") // Redirects to login if unauthorized or forbidden
     }
   }
 
-  // Validates admin privileges and session status before performing actions
-  const validateAdminStatus = async () => {
-    try {
-      const profile = await fetchUserProfile()
-
-      if (!profile) {
-        console.error("Profile data is missing or fetch failed.")
-        navigate("/login") // Redirects to login if profile fetch fails
-        return
-      }
-
-      if (!profile.isAdmin) {
-        console.warn("User no longer has admin privileges. Redirecting...")
-        navigate("/taskmanagementsystem")
-        return
-      }
-
-      if (profile.accountStatus !== "Active") {
-        console.warn("User account is disabled. Redirecting to login...")
-        navigate("/login")
-      }
-    } catch (error) {
-      console.error("Error validating admin status:", error)
-      navigate("/login")
-    }
-  }
-
-  // Displays a message temporarily using a timeout
+  // Display temporary message
   const showMessageWithTimeout = (setterFunction, message, duration = 2000) => {
     setterFunction(message)
     setTimeout(() => {
@@ -105,14 +102,13 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }, duration)
   }
 
-  // Initiates edit mode for a selected user and populates the edit form data
+  // Initiates edit mode for a selected user
   const handleEditClick = async user => {
-    await validateAdminStatus()
+    await validateAdminStatus() // Validate status before performing action
     try {
-      // Fetches details of the selected user
       const response = await axios.post("http://localhost:3000/getuserbyusername", { username: user.username })
       if (response.data) {
-        setEditingUser(user.username) // Sets the current user in edit mode
+        setEditingUser(user.username)
         setEditFormData({
           email: response.data.email || "",
           accountStatus: response.data.accountStatus || "Active",
@@ -127,9 +123,9 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }
   }
 
-  // Saves the edited user details to the backend
+  // Saves edited user details to backend
   const handleSaveClick = async username => {
-    await validateAdminStatus()
+    await validateAdminStatus() // Validate status before performing action
     const payload = {
       username,
       email: editFormData.email || "",
@@ -138,70 +134,49 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }
 
     if (editFormData.password) {
-      payload.password = editFormData.password // Adds password if it's updated
+      payload.password = editFormData.password
     }
 
     try {
       await axios.put("http://localhost:3000/updateuser", payload)
       showMessageWithTimeout(setSuccessMessage, "User updated successfully.")
-      await fetchUsers() // Refreshes the user list after saving
-      setEditingUser(null) // Exits edit mode
+      await fetchUsers()
+      setEditingUser(null)
       setEditFormData({})
     } catch (error) {
-      // Check if there is a validation error
       const backendErrors = error.response?.data?.details
-      if (backendErrors && backendErrors.length > 0) {
-        // Extract each error message and join them
-        const errorMessage = backendErrors.map(err => err.msg).join(" ")
-        showMessageWithTimeout(setErrorMessage, errorMessage)
-      } else {
-        const backendMessage = error.response?.data?.error || "An error occurred while updating the user."
-        showMessageWithTimeout(setErrorMessage, backendMessage)
-      }
+      const errorMessage = backendErrors ? backendErrors.map(err => err.msg).join(" ") : "Error updating user."
+      showMessageWithTimeout(setErrorMessage, errorMessage)
     }
   }
 
-  // Handles `Enter` key events to trigger actions
-  const handleKeyDown = (event, action) => {
-    if (event.key === "Enter") {
-      action()
-    }
-  }
-
-  // Creates a new group by sending data to the backend
+  // Create new group
   const handleCreateGroup = async () => {
-    await validateAdminStatus()
+    await validateAdminStatus() // Validate status before performing action
     setErrorMessage("")
     setSuccessMessage("")
     try {
       await axios.post("http://localhost:3000/creategroup", { group: newGroup })
       showMessageWithTimeout(setSuccessMessage, "Group created successfully.")
-      fetchGroups() // Refreshes the group list
-      setNewGroup("") // Clears the input
+      fetchGroups()
+      setNewGroup("")
     } catch (error) {
       const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating group."
       showMessageWithTimeout(setErrorMessage, backendMessage)
     }
   }
 
-  // Creates a new user by sending form data to the backend
+  // Create new user
   const handleCreateUser = async () => {
-    await validateAdminStatus()
+    await validateAdminStatus() // Validate status before performing action
     setErrorMessage("")
     setSuccessMessage("")
 
     try {
-      // Converts group options to an array of strings
       const groups = newUser.group.map(option => (typeof option === "string" ? option : option.value))
-
-      await axios.post("http://localhost:3000/createuser", {
-        ...newUser,
-        group: groups
-      })
-
+      await axios.post("http://localhost:3000/createuser", { ...newUser, group: groups })
       showMessageWithTimeout(setSuccessMessage, "User created successfully.")
-      fetchUsers() // Refreshes the user list
-      // Resets the form fields
+      fetchUsers()
       setNewUser({ username: "", email: "", password: "", group: [], accountStatus: "Active" })
     } catch (error) {
       const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating user."
@@ -209,7 +184,7 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }
   }
 
-  // Updates `editFormData.groups` when group selection changes
+  // Handles group selection change
   const handleGroupChange = selectedOptions => {
     setEditFormData(prevData => ({
       ...prevData,
@@ -217,62 +192,44 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
     }))
   }
 
-  // Exits edit mode without saving changes
+  // Exits edit mode
   const handleCancelClick = () => {
     setEditingUser(null)
     setEditFormData({})
     setErrorMessage("")
   }
 
-  // Updates `editFormData` as the user types in edit fields
+  // Updates editFormData as the user types
   const handleEditInputChange = e => {
     const { name, value } = e.target
-    setEditFormData(prevData => ({
-      ...prevData,
-      [name]: value || ""
-    }))
+    setEditFormData(prevData => ({ ...prevData, [name]: value || "" }))
   }
 
-  // Main component rendering with form and table structure
+  // Main rendering with form and table structure
   return (
     <>
-      <Header username={username} isAdmin={isAdmin} handleLogout={handleLogout} />
+      <Header username={username} handleLogout={handleLogout} isAdmin={isAdmin} />
       <div className="user-management-container">
         <h2>User Management</h2>
         {successMessage && <div className="success-box">{successMessage}</div>}
         {errorMessage && <div className="error-box">{errorMessage}</div>}
 
         <div className="group-creation-section">
-          <input type="text" placeholder="Enter group name" value={newGroup} onChange={e => setNewGroup(e.target.value || "")} onKeyDown={e => handleKeyDown(e, handleCreateGroup)} />
-          <button onClick={handleCreateGroup} disabled={!isAdmin}>
-            Create Group
-          </button>
+          <input type="text" placeholder="Enter group name" value={newGroup} onChange={e => setNewGroup(e.target.value || "")} />
+          <button onClick={handleCreateGroup}>Create Group</button>
         </div>
 
-        {isAdmin && (
-          <div className="create-user-section">
-            <input type="text" placeholder="Username*" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} onKeyDown={e => handleKeyDown(e, handleCreateUser)} />
-            <input type="email" placeholder="Email (optional)" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} onKeyDown={e => handleKeyDown(e, handleCreateUser)} />
-            <input type="password" placeholder="Password*" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} onKeyDown={e => handleKeyDown(e, handleCreateUser)} />
-            <Select
-              isMulti
-              options={groups}
-              value={newUser.group.map(group => ({ value: group, label: group }))}
-              onChange={selectedOptions =>
-                setNewUser({
-                  ...newUser,
-                  group: selectedOptions ? selectedOptions.map(option => option.value) : []
-                })
-              }
-              placeholder="Select Groups (optional)"
-            />
-            <select value={newUser.accountStatus} onChange={e => setNewUser({ ...newUser, accountStatus: e.target.value })} onKeyDown={e => handleKeyDown(e, handleCreateUser)}>
-              <option value="Active">Active</option>
-              <option value="Disabled">Disabled</option>
-            </select>
-            <button onClick={handleCreateUser}>Create User</button>
-          </div>
-        )}
+        <div className="create-user-section">
+          <input type="text" placeholder="Username*" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
+          <input type="email" placeholder="Email (optional)" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
+          <input type="password" placeholder="Password*" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
+          <Select isMulti options={groups} value={newUser.group.map(group => ({ value: group, label: group }))} onChange={selectedOptions => setNewUser({ ...newUser, group: selectedOptions ? selectedOptions.map(option => option.value) : [] })} placeholder="Select Groups (optional)" />
+          <select value={newUser.accountStatus} onChange={e => setNewUser({ ...newUser, accountStatus: e.target.value })}>
+            <option value="Active">Active</option>
+            <option value="Disabled">Disabled</option>
+          </select>
+          <button onClick={handleCreateUser}>Create User</button>
+        </div>
 
         <table className="user-table">
           <thead>
@@ -305,15 +262,11 @@ const UserManagement = ({ fetchUserProfile, isAdmin, username, handleLogout }) =
                 <td>
                   {editingUser === user.username ? (
                     <>
-                      <button onClick={() => handleSaveClick(user.username)} disabled={!isAdmin}>
-                        Save
-                      </button>
+                      <button onClick={() => handleSaveClick(user.username)}>Save</button>
                       <button onClick={handleCancelClick}>Cancel</button>
                     </>
                   ) : (
-                    <button onClick={() => handleEditClick(user)} disabled={!isAdmin}>
-                      Edit
-                    </button>
+                    <button onClick={() => handleEditClick(user)}>Edit</button>
                   )}
                 </td>
               </tr>

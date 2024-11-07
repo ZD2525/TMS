@@ -12,10 +12,7 @@ exports.loginUser = async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({
       error: "Invalid Credentials.",
-      details: [
-        { msg: "Username is required", param: "username" },
-        { msg: "Password is required", param: "password" }
-      ]
+      details: [{ msg: "Username is required" }, { msg: "Password is required" }]
     })
   }
 
@@ -41,7 +38,7 @@ exports.loginUser = async (req, res) => {
     if (results.length === 0) {
       return res.status(401).json({
         error: "Invalid Credentials.",
-        details: [{ msg: "Username or password is incorrect", param: "username" }]
+        details: [{ msg: "Username or password is incorrect" }]
       })
     }
 
@@ -51,7 +48,7 @@ exports.loginUser = async (req, res) => {
     if (user.accountStatus !== "Active") {
       return res.status(403).json({
         error: "Invalid Credentials.",
-        details: [{ msg: "Your account is currently disabled", param: "accountStatus" }]
+        details: [{ msg: "Your account is currently disabled" }]
       })
     }
 
@@ -60,7 +57,7 @@ exports.loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         error: "Invalid Credentials.",
-        details: [{ msg: "Username or password is incorrect", param: "password" }]
+        details: [{ msg: "Username or password is incorrect" }]
       })
     }
 
@@ -170,7 +167,7 @@ const createUserValidationRules = [
     .withMessage("Password must be 8-10 characters long and include letters, numbers, and special characters."),
 
   // Email validation
-  body("email").optional({ checkFalsy: true }).isEmail().withMessage("Email format must match the pattern username@domain.com.").isLength({ max: 100 }).withMessage("Email must have a maximum of 100 characters."),
+  body("email").optional({ checkFalsy: true }).isEmail().withMessage("Email format must match the pattern {username}@{domain}").isLength({ max: 100 }).withMessage("Email must have a maximum of 100 characters."),
 
   // Group validation
   body("group")
@@ -196,7 +193,7 @@ exports.createUser = [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         error: "Validation failed",
-        details: errors.array().map(error => ({ msg: error.msg, param: error.param }))
+        details: errors.array().map(error => ({ msg: error.msg }))
       })
     }
 
@@ -240,7 +237,7 @@ exports.createGroup = [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         error: "Group name is mandatory.",
-        details: errors.array().map(error => ({ msg: error.msg, param: error.param }))
+        details: errors.array().map(error => ({ msg: error.msg }))
       })
     }
 
@@ -253,7 +250,7 @@ exports.createGroup = [
       if (existingGroup.length > 0) {
         return res.status(400).json({
           error: "Validation failed",
-          details: [{ msg: "Group name already exists.", param: "group" }]
+          details: [{ msg: "Group name already exists." }]
         })
       }
 
@@ -330,14 +327,13 @@ exports.updateUser = async (req, res) => {
 
   // Validate email format
   if (email && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-    validationErrors.push({ msg: "Email format entered must match the pattern username@domain.com", param: "email" })
+    validationErrors.push({ msg: "Email format entered must match the pattern {username}@{domain}" })
   }
 
   // Validate password complexity
   if (password && !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,10}$/.test(password)) {
     validationErrors.push({
-      msg: "Password must contain letters, numbers, and special characters, between 8-10 characters.",
-      param: "password"
+      msg: "Password must contain letters, numbers, and special characters, between 8-10 characters."
     })
   }
 
@@ -442,13 +438,12 @@ exports.updateProfile = async (req, res) => {
   const errors = []
 
   if (email && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-    errors.push({ msg: "Email format entered must match the pattern username@domain.com", param: "email" })
+    errors.push({ msg: "Email format entered must match the pattern {username}@{domain}" })
   }
 
   if (newPassword && !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,10}$/.test(newPassword)) {
     errors.push({
-      msg: "Password can only consist of alphabets, numbers and special characters, minimum 8-10 characters",
-      param: "newPassword"
+      msg: "Password can only consist of alphabets, numbers and special characters, minimum 8-10 characters"
     })
   }
 

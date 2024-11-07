@@ -3,12 +3,9 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import "../assets/styles/EditProfile.css"
 
-// Enables sending cookies with every axios request
 axios.defaults.withCredentials = true
 
-// EditProfile component definition
-const EditProfile = () => {
-  // State variables for managing email, password, and feedback messages
+const EditProfile = ({ validateAccountStatus }) => {
   const [currentEmail, setCurrentEmail] = useState("") // Stores the current email address
   const [newEmail, setNewEmail] = useState("") // Stores the new email entered by the user
   const [newPassword, setNewPassword] = useState("") // Stores the new password entered by the user
@@ -32,10 +29,13 @@ const EditProfile = () => {
       }
     }
     fetchProfile()
-  }, [navigate]) // Runs only on component mount
+  }, [navigate])
 
   // Handles the update of profile information (email and/or password)
   const handleUpdate = async () => {
+    // Validate account status before allowing the update
+    await validateAccountStatus()
+
     setErrorMessages([]) // Clears any previous error messages
     setMessage("") // Clears any previous success message
 
@@ -78,8 +78,9 @@ const EditProfile = () => {
   }
 
   // Triggers `handleUpdate` when the Enter key is pressed in input fields
-  const handleKeyPress = event => {
+  const handleKeyPress = async event => {
     if (event.key === "Enter") {
+      await validateAccountStatus()
       handleUpdate()
     }
   }

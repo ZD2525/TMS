@@ -1,66 +1,37 @@
-import React, { useEffect } from "react"
+import React from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
-import axios from "axios"
 import "../assets/styles/Header.css"
 
-// Header component definition
-const Header = ({ username, isAdmin, handleLogout }) => {
-  const navigate = useNavigate() // Navigation hook for programmatic redirection
-  const location = useLocation() // Location hook to track the current route
+const Header = ({ username, isAdmin, handleLogout, validateAccountStatus }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  // Function to check the user's admin status and account status
-  const checkAdminStatus = async () => {
-    try {
-      // Sends a GET request to the backend to check the account status
-      const response = await axios.get("http://localhost:3000/getprofile")
-      const { accountStatus } = response.data
-
-      // Logs the user out if their account is not active
-      if (accountStatus !== "Active") {
-        console.warn("Account disabled. Logging out.")
-        handleLogout()
-      }
-    } catch (error) {
-      // Handles unauthorized access (401 error) by logging out the user
-      if (error.response && error.response.status === 401) {
-        console.warn("Unauthorized access. Redirecting to login.")
-        handleLogout()
-      } else {
-        // Logs other errors to the console
-        console.error("Admin status check failed:", error)
-      }
+  // Handler for clicking on navigation links
+  const handleNavClick = async path => {
+    if (validateAccountStatus) {
+      await validateAccountStatus() // Validate before navigating
     }
+    navigate(path)
   }
 
-  // Effect hook that runs every time the route changes, triggering `checkAdminStatus`
-  useEffect(() => {
-    checkAdminStatus()
-  }, [location.pathname]) // Dependency array includes `location.pathname` to re-run on route change
-
-  // Main component rendering
   return (
     <div className="header">
-      {/* Welcome message with the user's name, defaulting to "Guest" if not logged in */}
       <div className="welcome">Welcome, {username || "Guest"}</div>
       <nav>
-        {/* Conditional rendering of admin-only link to the User Management System */}
         {isAdmin && (
           <>
-            <Link to="/usermanagement" className={location.pathname === "/usermanagement" ? "active" : ""}>
+            <Link to="/usermanagement" className={location.pathname.startsWith("/usermanagement") ? "active" : ""} onClick={() => handleNavClick("/usermanagement")}>
               User Management System
             </Link>
             <span> | </span>
           </>
         )}
-        {/* Link to the Task Management System, accessible to all users */}
-        <Link to="/taskmanagementsystem" className={location.pathname === "/taskmanagementsystem" ? "active" : ""}>
+        <Link to="/taskmanagementsystem" className={location.pathname === "/taskmanagementsystem" ? "active" : ""} onClick={() => handleNavClick("/taskmanagementsystem")}>
           Task Management System
         </Link>
       </nav>
       <div className="header-buttons">
-        {/* Profile button navigates to the Edit Profile page */}
-        <button onClick={() => navigate("/editprofile")}>Profile</button>
-        {/* Logout button triggers the `handleLogout` function to end the session */}
+        <button onClick={() => handleNavClick("/editprofile")}>Profile</button>
         <button onClick={handleLogout}>Logout</button>
       </div>
     </div>
