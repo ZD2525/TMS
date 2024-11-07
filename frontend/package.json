@@ -1,7 +1,5 @@
 {
   "name": "frontend",
-  "version": "1.0.0",
-  "description": "",
   "scripts": {
     "start": "webpack serve",
     "build": "webpack --mode production"

@@ -81,7 +81,6 @@ const App = () => {
       {isAuthenticated && <Header username={username} handleLogout={handleLogout} isAdmin={userProfile?.isAdmin} validateAccountStatus={validateAccountStatus} />}
       <div className="main-content">
         <Routes>
-          <Route path="/" element={isAuthenticated ? <Navigate to="/taskmanagementsystem" /> : <Navigate to="/login" />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/taskmanagementsystem" /> : <Login fetchUserProfile={fetchUserProfile} />} />
           <Route path="/taskmanagementsystem" element={<TaskManagementSystem username={username} />} />
           <Route path="/usermanagement" element={isAuthenticated && userProfile?.isAdmin ? <UserManagementSystem fetchUserProfile={fetchUserProfile} username={username} isAdmin={userProfile?.isAdmin} handleLogout={handleLogout} validateAccountStatus={validateAccountStatus} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />

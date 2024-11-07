@@ -30,7 +30,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: "./public/index.html",
       filename: "index.html",
-      inject: false // Disabling the automatic injection
+      inject: false
     })
   ],
   devServer: {
