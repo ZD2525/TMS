@@ -30,17 +30,14 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
     try {
       const profile = await fetchUserProfile()
       if (!profile) {
-        console.warn("Profile data is missing or fetch failed. Redirecting...")
         handleLogout() // This will log the user out if the profile fetch fails
         return
       }
       if (!profile.isAdmin) {
-        console.warn("User no longer has admin privileges. Redirecting to task management...")
         navigate("/taskmanagementsystem")
         return
       }
       if (profile.accountStatus !== "Active") {
-        console.warn("User account is disabled. Logging out...")
         handleLogout()
       }
     } catch (error) {
