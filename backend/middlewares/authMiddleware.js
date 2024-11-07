@@ -42,13 +42,11 @@ const checkGroup = async (username, groupname) => {
 const requireAdmin = async (req, res, next) => {
   try {
     const username = req.user.username
-
     const isAdmin = await checkGroup(username, "admin")
 
     if (!isAdmin) {
       return res.status(403).json({ error: "Access forbidden. Admins only." })
     }
-
     next()
   } catch (error) {
     console.error("Error checking admin status:", error)

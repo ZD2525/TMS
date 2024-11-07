@@ -40,7 +40,6 @@ const EditProfile = ({ validateAccountStatus }) => {
     setMessage("") // Clears any previous success message
 
     try {
-      // Sends a PUT request to update the user's profile
       await axios.put("http://localhost:3000/updateprofile", {
         email: newEmail,
         newPassword

@@ -42,7 +42,7 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
       }
     } catch (error) {
       console.error("Error validating admin status:", error)
-      handleLogout() // Fallback logout in case of errors
+      handleLogout()
     }
   }
 

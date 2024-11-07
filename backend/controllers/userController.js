@@ -158,7 +158,7 @@ const createUserValidationRules = [
   body("password")
     .notEmpty()
     .withMessage("Password is mandatory.")
-    .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,10}$/)
+    .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&~#()_+-=]).{8,10}$/)
     .withMessage("Password must be 8-10 characters long and include letters, numbers, and special characters."),
 
   // Email validation
