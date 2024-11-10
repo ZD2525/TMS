@@ -5,11 +5,12 @@ import "../assets/styles/Login.css"
 
 axios.defaults.withCredentials = true
 
-const Login = ({ fetchUserProfile }) => {
+const Login = ({ onLoginSuccess }) => {
+  // Accept onLoginSuccess as a prop
   const [loginUsername, setLoginUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState(null)
-  const [showPassword, setShowPassword] = useState(false) // New state to manage password visibility
+  const [showPassword, setShowPassword] = useState(false) // State to manage password visibility
 
   const navigate = useNavigate()
 
@@ -23,14 +24,15 @@ const Login = ({ fetchUserProfile }) => {
         password
       })
 
-      if (response.data.user) {
-        await fetchUserProfile()
+      if (response.data) {
+        // Fetch profile only if the login is successful
+        await onLoginSuccess()
         navigate("/taskmanagementsystem")
       } else {
         throw new Error("User data not found in the response.")
       }
     } catch (err) {
-      setError(err.response?.data?.error || "An error occurred during login.")
+      setError(err.response?.data?.error || "Invalid Credentials.")
       console.error("Login failed:", err)
     }
   }

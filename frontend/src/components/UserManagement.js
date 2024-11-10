@@ -7,10 +7,10 @@ import "../assets/styles/UserManagement.css"
 
 axios.defaults.withCredentials = true
 
-const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) => {
-  const [users, setUsers] = useState([]) // List of all users
-  const [groups, setGroups] = useState([]) // List of all groups
-  const [newGroup, setNewGroup] = useState("") // Input value for creating a new group
+const UserManagement = ({ username, isAdmin, handleLogout, setIsAdmin, setIsAuthenticated }) => {
+  const [users, setUsers] = useState([])
+  const [groups, setGroups] = useState([])
+  const [newGroup, setNewGroup] = useState("")
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -18,104 +18,101 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
     group: [],
     accountStatus: "Active"
   })
-  const [editingUser, setEditingUser] = useState(null) // Username of the user being edited
-  const [editFormData, setEditFormData] = useState({}) // Form data for editing a user
-  const [errorMessage, setErrorMessage] = useState("") // Error message in UI
-  const [successMessage, setSuccessMessage] = useState("") // Success message in UI
+  const [editingUser, setEditingUser] = useState(null)
+  const [editFormData, setEditFormData] = useState({})
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
-  const navigate = useNavigate() // Navigation hook
+  const navigate = useNavigate()
 
-  // Function to check if the user is still an admin and active
-  const validateAdminStatus = async () => {
-    try {
-      const profile = await fetchUserProfile()
-      if (!profile) {
-        handleLogout() // This will log the user out if the profile fetch fails
-        return
-      }
-      if (!profile.isAdmin) {
-        navigate("/taskmanagementsystem")
-        return
-      }
-      if (profile.accountStatus !== "Active") {
-        handleLogout()
-      }
-    } catch (error) {
-      console.error("Error validating admin status:", error)
-      handleLogout()
-    }
-  }
-
-  // Fetch initial data on component mount
   useEffect(() => {
     const initializeData = async () => {
       try {
-        await fetchUserProfile() // Verify user session
-        await fetchUsers() // Fetch all users
-        await fetchGroups() // Fetch all groups
+        console.log("Fetching users and groups on initialization.")
+        await fetchUsers()
+        await fetchGroups()
       } catch (error) {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          navigate("/login") // Redirect based on response
+        console.error("Error during initialization:", error)
+        if (error.response?.status === 401) {
+          console.log("User not authenticated, navigating to /login.")
+          setIsAuthenticated(false)
+          navigate("/login")
+        } else if (error.response?.status === 403) {
+          console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+          setIsAdmin(false)
+          navigate("/taskmanagementsystem")
         } else {
           console.error("Failed to initialize data:", error)
         }
       }
     }
     initializeData()
-  }, [fetchUserProfile, navigate])
+  }, [navigate, setIsAuthenticated])
 
-  // Fetches all users from the backend
   const fetchUsers = async () => {
     try {
+      console.log("Fetching users from API.")
       const response = await axios.get("http://localhost:3000/getallusers")
       setUsers(response.data || [])
+      console.log("Users fetched successfully:", response.data)
     } catch (error) {
-      handleUnauthorizedAccess(error.response?.status)
+      console.error("Error fetching users:", error)
+      if (error.response?.status === 401) {
+        console.log("User not authenticated, navigating to /login.")
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.status === 403) {
+        console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+        setIsAdmin(false)
+        navigate("/taskmanagementsystem")
+      }
     }
   }
 
-  // Fetches all groups from the backend
   const fetchGroups = async () => {
     try {
+      console.log("Fetching groups from API.")
       const response = await axios.get("http://localhost:3000/groups")
       setGroups(response.data?.map(group => ({ value: group, label: group })) || [])
+      console.log("Groups fetched successfully:", response.data)
     } catch (error) {
-      handleUnauthorizedAccess(error.response?.status)
+      console.error("Error fetching groups:", error)
+      if (error.response?.status === 401) {
+        console.log("User not authenticated, navigating to /login.")
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.status === 403) {
+        console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+        setIsAdmin(false)
+        navigate("/taskmanagementsystem")
+      }
     }
   }
 
-  // Display temporary message
   const showMessageWithTimeout = (setterFunction, message, duration = 2000) => {
+    console.log("Displaying message:", message)
     setterFunction(message)
     setTimeout(() => {
       setterFunction("")
     }, duration)
   }
 
-  // Initiates edit mode for a selected user
-  const handleEditClick = async user => {
-    await validateAdminStatus() // Validate status before performing action
-    try {
-      const response = await axios.post("http://localhost:3000/getuserbyusername", { username: user.username })
-      if (response.data) {
-        setEditingUser(user.username)
-        setEditFormData({
-          email: response.data.email || "",
-          accountStatus: response.data.accountStatus || "Active",
-          groups: response.data.groups || [],
-          password: ""
-        })
-        setErrorMessage("")
-        setSuccessMessage("")
-      }
-    } catch (error) {
-      showMessageWithTimeout(setErrorMessage, "Error fetching user details.")
-    }
+  const handleEditClick = user => {
+    console.log("Editing user:", user)
+    const { username, email, accountStatus, groups } = user
+    setEditingUser(username)
+    setEditFormData({
+      email: email || "",
+      accountStatus: accountStatus || "Active",
+      groups: groups || [],
+      password: ""
+    })
+    setErrorMessage("")
+    setSuccessMessage("")
   }
 
-  // Saves edited user details to backend
   const handleSaveClick = async username => {
-    await validateAdminStatus() // Validate status before performing action
+    console.log("Saving edits for user:", username)
     const payload = {
       username,
       email: editFormData.email || "",
@@ -128,21 +125,61 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
     }
 
     try {
+      console.log("Sending update request for user:", payload)
       await axios.put("http://localhost:3000/updateuser", payload)
       showMessageWithTimeout(setSuccessMessage, "User updated successfully.")
       await fetchUsers()
       setEditingUser(null)
       setEditFormData({})
     } catch (error) {
-      const backendErrors = error.response?.data?.details || []
-      const errorMessage = backendErrors.length > 0 ? backendErrors.map(err => err.msg).join(", ") : "Error updating user."
-      showMessageWithTimeout(setErrorMessage, errorMessage)
+      console.error("Error updating user:", error)
+      if (error.response?.status === 401) {
+        console.log("User not authenticated, navigating to /login.")
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.status === 403) {
+        console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+        setIsAdmin(false)
+        navigate("/taskmanagementsystem")
+      } else {
+        const backendErrors = error.response?.data?.details || []
+        const errorMessage = backendErrors.length > 0 ? backendErrors.map(err => err.msg).join(", ") : "Error updating user."
+        showMessageWithTimeout(setErrorMessage, errorMessage)
+      }
     }
   }
 
-  // Create new group
+  const handleCreateUser = async () => {
+    console.log("Creating new user:", newUser)
+    setErrorMessage("")
+    setSuccessMessage("")
+
+    try {
+      const groups = newUser.group.map(option => (typeof option === "string" ? option : option.value))
+      console.log("Creating user with groups:", groups)
+      await axios.post("http://localhost:3000/createuser", { ...newUser, group: groups })
+      showMessageWithTimeout(setSuccessMessage, "User created successfully.")
+      fetchUsers()
+      setNewUser({ username: "", email: "", password: "", group: [], accountStatus: "Active" })
+    } catch (error) {
+      console.error("Error creating user:", error)
+      if (error.response?.status === 401) {
+        console.log("User not authenticated, navigating to /login.")
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.status === 403) {
+        console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+        setIsAdmin(false)
+        navigate("/taskmanagementsystem")
+      } else {
+        const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating user."
+        showMessageWithTimeout(setErrorMessage, backendMessage)
+      }
+    }
+  }
+
   const handleCreateGroup = async () => {
-    await validateAdminStatus() // Validate status before performing action
+    console.log("Creating new group:", newGroup)
     setErrorMessage("")
     setSuccessMessage("")
     try {
@@ -151,51 +188,43 @@ const UserManagement = ({ fetchUserProfile, username, isAdmin, handleLogout }) =
       fetchGroups()
       setNewGroup("")
     } catch (error) {
-      const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating group."
-      showMessageWithTimeout(setErrorMessage, backendMessage)
+      console.error("Error creating group:", error)
+      if (error.response?.status === 401) {
+        console.log("User not authenticated, navigating to /login.")
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.status === 403) {
+        console.log("User does not have admin access, navigating to /taskmanagementsystem.")
+        setIsAdmin(false)
+        navigate("/taskmanagementsystem")
+      } else {
+        const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating group."
+        showMessageWithTimeout(setErrorMessage, backendMessage)
+      }
     }
   }
 
-  // Create new user
-  const handleCreateUser = async () => {
-    await validateAdminStatus() // Validate status before performing action
-    setErrorMessage("")
-    setSuccessMessage("")
-
-    try {
-      const groups = newUser.group.map(option => (typeof option === "string" ? option : option.value))
-      await axios.post("http://localhost:3000/createuser", { ...newUser, group: groups })
-      showMessageWithTimeout(setSuccessMessage, "User created successfully.")
-      fetchUsers()
-      setNewUser({ username: "", email: "", password: "", group: [], accountStatus: "Active" })
-    } catch (error) {
-      const backendMessage = error.response?.data?.details?.[0]?.msg || "Error creating user."
-      showMessageWithTimeout(setErrorMessage, backendMessage)
-    }
-  }
-
-  // Handles group selection change
   const handleGroupChange = selectedOptions => {
+    console.log("Group change detected:", selectedOptions)
     setEditFormData(prevData => ({
       ...prevData,
       groups: selectedOptions ? selectedOptions.map(option => option.value) : []
     }))
   }
 
-  // Exits edit mode
   const handleCancelClick = () => {
+    console.log("Canceling edit.")
     setEditingUser(null)
     setEditFormData({})
     setErrorMessage("")
   }
 
-  // Updates editFormData as the user types
   const handleEditInputChange = e => {
     const { name, value } = e.target
+    console.log(`Input change detected: ${name} = ${value}`)
     setEditFormData(prevData => ({ ...prevData, [name]: value || "" }))
   }
 
-  // Main rendering with form and table structure
   return (
     <>
       <Header username={username} handleLogout={handleLogout} isAdmin={isAdmin} />

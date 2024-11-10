@@ -1,43 +1,38 @@
 import React, { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
 import axios from "axios"
+import { useNavigate } from "react-router-dom"
 import "../assets/styles/EditProfile.css"
 
 axios.defaults.withCredentials = true
 
-const EditProfile = ({ validateAccountStatus }) => {
-  const [currentEmail, setCurrentEmail] = useState("") // Stores the current email address
-  const [newEmail, setNewEmail] = useState("") // Stores the new email entered by the user
-  const [newPassword, setNewPassword] = useState("") // Stores the new password entered by the user
-  const [message, setMessage] = useState("") // Success message to display after updating profile
-  const [errorMessages, setErrorMessages] = useState([]) // Array of error messages to display for validation issues
+const EditProfile = ({ isAuthenticated, setIsAuthenticated }) => {
+  const [currentEmail, setCurrentEmail] = useState("")
+  const [newEmail, setNewEmail] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [message, setMessage] = useState("")
+  const [errorMessages, setErrorMessages] = useState([])
 
-  const navigate = useNavigate() // Navigation hook for programmatic redirection
+  const navigate = useNavigate()
 
-  // Fetches the user's current profile details on component mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await axios.get("http://localhost:3000/getprofile")
-        setCurrentEmail(response.data.email || "No Email") // Sets the current email if available
+        setCurrentEmail(response.data.email || "No Email")
       } catch (error) {
         console.error("Error fetching profile:", error)
-        // Redirects to login if unauthorized access (status 401) is detected
-        if (error.response && error.response.status === 401) {
+        if (error.response?.status === 401) {
+          setIsAuthenticated(false)
           navigate("/login")
         }
       }
     }
     fetchProfile()
-  }, [navigate])
+  }, [navigate, setIsAuthenticated])
 
-  // Handles the update of profile information (email and/or password)
   const handleUpdate = async () => {
-    // Validate account status before allowing the update
-    await validateAccountStatus()
-
-    setErrorMessages([]) // Clears any previous error messages
-    setMessage("") // Clears any previous success message
+    setErrorMessages([])
+    setMessage("")
 
     try {
       await axios.put("http://localhost:3000/updateprofile", {
@@ -45,51 +40,33 @@ const EditProfile = ({ validateAccountStatus }) => {
         newPassword
       })
 
-      // Sets success message and updates current email if a new one was provided
       setMessage("Profile updated successfully")
-      setCurrentEmail(newEmail || currentEmail) // Only updates if newEmail is not empty
-      setNewEmail("") // Clears the new email input field
-      setNewPassword("") // Clears the new password input field
+      setCurrentEmail(newEmail || currentEmail)
+      setNewEmail("")
+      setNewPassword("")
 
-      // Clears success message after 2 seconds
       setTimeout(() => {
         setMessage("")
       }, 2000)
     } catch (error) {
-      // Handles validation or server errors and displays relevant messages
-      if (error.response && error.response.status === 400) {
-        if (error.response.data.error === "Validation failed") {
-          // Sets validation error messages from the backend response
-          setErrorMessages(error.response.data.details.map(detail => detail.msg))
-        } else {
-          setErrorMessages([error.response.data.error || "An error occurred while updating the profile."])
-        }
+      if (error.response?.status === 401) {
+        setIsAuthenticated(false)
+        navigate("/login")
       } else {
         console.error("Error updating profile:", error)
         setErrorMessages(["An error occurred while updating the profile."])
       }
 
-      // Clears error messages after 2 seconds
       setTimeout(() => {
         setErrorMessages([])
       }, 2000)
     }
   }
 
-  // Triggers `handleUpdate` when the Enter key is pressed in input fields
-  const handleKeyPress = async event => {
-    if (event.key === "Enter") {
-      await validateAccountStatus()
-      handleUpdate()
-    }
-  }
-
-  // Main component rendering
   return (
     <div className="edit-profile-container">
       <h2>Update Info</h2>
-      {message && <p className="message success-box">{message}</p>} {/* Displays success message if profile update is successful */}
-      {/* Displays validation or error messages */}
+      {message && <p className="message success-box">{message}</p>}
       {errorMessages.length > 0 && (
         <div className="error-box">
           <strong>Error:</strong>
@@ -101,34 +78,18 @@ const EditProfile = ({ validateAccountStatus }) => {
           ))}
         </div>
       )}
-      {/* Current email display */}
       <div className="form-group">
         <label>Current Email Address</label>
         <p className="email-display">{currentEmail}</p>
       </div>
-      {/* New email input field */}
       <div className="form-group">
         <label>New Email</label>
-        <input
-          type="text"
-          value={newEmail}
-          onChange={e => setNewEmail(e.target.value)}
-          placeholder="Enter new email"
-          onKeyDown={handleKeyPress} // Triggers update on Enter key
-        />
+        <input type="text" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Enter new email" />
       </div>
-      {/* New password input field */}
       <div className="form-group">
         <label>New Password</label>
-        <input
-          type="password"
-          value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
-          placeholder="Enter new password"
-          onKeyDown={handleKeyPress} // Triggers update on Enter key
-        />
+        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password" />
       </div>
-      {/* Update button triggers handleUpdate */}
       <button className="update-button" onClick={handleUpdate}>
         Update
       </button>

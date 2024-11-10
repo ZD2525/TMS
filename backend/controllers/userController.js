@@ -5,7 +5,6 @@ const { body, validationResult } = require("express-validator")
 const JWT_SECRET = process.env.JWT_SECRET
 
 // Login function to authenticate a user and issue a JWT token
-// Login function to authenticate a user and issue a JWT token
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body
 
@@ -32,11 +31,11 @@ exports.loginUser = async (req, res) => {
 
     const user = userResults[0]
 
-    // Verify account status
+    // Check if the user's account status is active
     if (user.accountStatus !== "Active") {
-      return res.status(403).json({
+      return res.status(401).json({
         error: "Invalid Credentials.",
-        details: [{ msg: "Your account is currently disabled" }]
+        details: [{ msg: `Your account status is ${user.accountStatus}` }]
       })
     }
 
@@ -49,11 +48,6 @@ exports.loginUser = async (req, res) => {
       })
     }
 
-    // Retrieve user groups in a separate query
-    const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
-    const [groupResults] = await db.query(groupQuery, [username])
-    const userGroups = groupResults.map(row => row.user_group)
-
     // Retrieve IP and browser information for the token
     const ipAddress = req.ip
     const browserType = req.headers["user-agent"]
@@ -61,9 +55,7 @@ exports.loginUser = async (req, res) => {
     // Sign JWT token with user details
     const token = jwt.sign(
       {
-        id: user.id,
         username: user.username,
-        email: user.email,
         ipAddress,
         browserType
       },
@@ -80,8 +72,8 @@ exports.loginUser = async (req, res) => {
         maxAge: 60 * 60 * 1000 // 1 hour expiration
       })
       .json({
-        message: "Login Success",
-        user: { username: user.username, email: user.email, groups: userGroups } // return user groups
+        username: user.username,
+        message: "Login Successful"
       })
   } catch (error) {
     console.error("Login Error:", error)
@@ -95,46 +87,40 @@ exports.logoutUser = (_req, res) => {
 }
 
 // Get all users for user management
-// Get all users for user management
-exports.getAllUsers = [
-  async (_req, res) => {
-    try {
-      // Query to fetch all users
-      const userQuery = `
-        SELECT 
-          username, 
-          email, 
-          accountStatus 
-        FROM 
-          Accounts
-      `
-      const [userResults] = await db.query(userQuery)
+exports.getAllUsers = async (_req, res) => {
+  try {
+    console.log("Fetching all users from the Accounts table...")
+    const userQuery = "SELECT username, email, accountStatus FROM Accounts"
+    const [userResults] = await db.execute(userQuery)
 
-      // Prepare an array to store the user data with groups
-      const userData = []
+    console.log("User query results:", userResults)
 
-      // Fetch groups for each user
-      for (const user of userResults) {
-        const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
-        const [groupResults] = await db.query(groupQuery, [user.username])
-        const groups = groupResults.map(row => row.user_group)
+    const groupQuery = "SELECT username, user_group FROM UserGroup"
+    const [groupResults] = await db.execute(groupQuery)
 
-        userData.push({
-          username: user.username,
-          email: user.email,
-          accountStatus: user.accountStatus,
-          password: "********", // Masked password
-          groups
-        })
+    console.log("User group query results:", groupResults)
+
+    const groupMap = {}
+    groupResults.forEach(({ username, user_group }) => {
+      if (!groupMap[username]) {
+        groupMap[username] = []
       }
+      groupMap[username].push(user_group)
+    })
 
-      res.json(userData)
-    } catch (error) {
-      console.error("Error retrieving user data:", error)
-      res.status(500).json({ error: "An error occurred while retrieving user data" })
-    }
+    const userData = userResults.map(user => ({
+      ...user,
+      password: "********", // Masked password
+      groups: groupMap[user.username] || [] // Assign groups or empty array if none exist
+    }))
+
+    console.log("Final assembled user data:", userData)
+    res.json(userData)
+  } catch (error) {
+    console.error("Error retrieving user data:", error)
+    res.status(500).json({ error: "An error occurred while retrieving user data." })
   }
-]
+}
 
 // Validation rules for creating a new user
 const createUserValidationRules = [
@@ -158,8 +144,8 @@ const createUserValidationRules = [
   body("password")
     .notEmpty()
     .withMessage("Password is mandatory.")
-    .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&~#()_+-=]).{8,10}$/)
-    .withMessage("Password must be 8-10 characters long and include letters, numbers, and special characters."),
+    .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,10}$/)
+    .withMessage("Password must be 8-10 characters long and include at least one letter, one number, and one special character."),
 
   // Email validation
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Email format must match the pattern {username}@{domain}").isLength({ max: 100 }).withMessage("Email must have a maximum of 100 characters."),
@@ -260,42 +246,6 @@ exports.createGroup = [
   }
 ]
 
-// Retrieve a specific user's details by username
-exports.getUserByUsername = async (req, res) => {
-  const { username } = req.body
-
-  try {
-    // First, retrieve user details from the Accounts table
-    const userQuery = "SELECT username, email, accountStatus FROM Accounts WHERE username = ?"
-    const [userResults] = await db.query(userQuery, [username])
-
-    // Check if user exists
-    if (userResults.length === 0) {
-      return res.status(404).json({ error: "User not found" })
-    }
-
-    const user = userResults[0]
-
-    // Next, retrieve user groups from the UserGroup table
-    const groupQuery = "SELECT user_group FROM UserGroup WHERE username = ?"
-    const [groupResults] = await db.query(groupQuery, [username])
-
-    // Extract groups into an array
-    const groups = groupResults.map(row => row.user_group)
-
-    // Send the response with user details and groups
-    res.json({
-      username: user.username,
-      email: user.email,
-      accountStatus: user.accountStatus,
-      groups // no need to split here since we directly map the results
-    })
-  } catch (error) {
-    console.error("Error fetching user by username:", error)
-    res.status(500).json({ error: "An error occurred while fetching the user details" })
-  }
-}
-
 // Retrieve all available groups
 exports.getGroups = async (_req, res) => {
   try {
@@ -309,7 +259,6 @@ exports.getGroups = async (_req, res) => {
   }
 }
 
-// Admin-only update user functionality
 exports.updateUser = async (req, res) => {
   const { username, email, accountStatus, groups, password } = req.body
 
@@ -346,6 +295,7 @@ exports.updateUser = async (req, res) => {
       })
     }
 
+    // Build the update query dynamically
     let updateQuery = "UPDATE Accounts SET "
     const values = []
 
@@ -365,12 +315,14 @@ exports.updateUser = async (req, res) => {
       values.push(hashedPassword)
     }
 
+    // Execute update if there are fields to update
     if (values.length > 0) {
       updateQuery = updateQuery.slice(0, -2) + " WHERE username = ?"
       values.push(username)
       await db.query(updateQuery, values)
     }
 
+    // Handle group updates if groups are provided
     if (groups) {
       const deleteGroupsQuery = "DELETE FROM UserGroup WHERE username = ?"
       await db.query(deleteGroupsQuery, [username])
@@ -404,15 +356,10 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ error: "User not found" })
     }
 
-    const groupQuery = "SELECT * FROM UserGroup WHERE username = ? AND user_group = 'admin'"
-    const [groupResults] = await db.query(groupQuery, [username])
-    const isAdmin = groupResults.length > 0
-
     res.json({
       username: userResults[0].username,
       email: userResults[0].email,
-      accountStatus: userResults[0].accountStatus,
-      isAdmin
+      accountStatus: userResults[0].accountStatus
     })
   } catch (error) {
     console.error("Error fetching profile:", error)

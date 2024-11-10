@@ -1,28 +1,25 @@
 const express = require("express")
 const router = express.Router()
 const userController = require("../controllers/userController")
-const { verifyToken, requireAdmin } = require("../middlewares/authMiddleware")
+const { verifyToken, CheckGroup } = require("../middlewares/authMiddleware")
 
 // Public Routes
 router.post("/login", userController.loginUser)
-router.post("/logout", userController.logoutUser)
-
-// verifyToken used for all routes that follow
-router.use(verifyToken)
 
 // Authenticated routes
-router.get("/getprofile", userController.getProfile)
-router.put("/updateprofile", userController.updateProfile)
-
-// requireAdmin used for all routes that follow
-router.use(requireAdmin)
+router.post("/logout", verifyToken, userController.logoutUser)
+router.post("/checkgroup", verifyToken, CheckGroup(), (req, res) => {
+  console.log(req.body)
+  res.json({ success: true })
+})
+router.get("/getprofile", verifyToken, userController.getProfile)
+router.put("/updateprofile", verifyToken, userController.updateProfile)
 
 // Admin-Protected Routes
-router.get("/getallusers", userController.getAllUsers)
-router.post("/createuser", userController.createUser)
-router.get("/groups", userController.getGroups)
-router.post("/creategroup", userController.createGroup)
-router.post("/getuserbyusername", userController.getUserByUsername)
-router.put("/updateuser", userController.updateUser)
+router.get("/getallusers", verifyToken, CheckGroup("admin"), userController.getAllUsers)
+router.post("/createuser", verifyToken, CheckGroup("admin"), userController.createUser)
+router.get("/groups", verifyToken, CheckGroup("admin"), userController.getGroups)
+router.post("/creategroup", verifyToken, CheckGroup("admin"), userController.createGroup)
+router.put("/updateuser", verifyToken, CheckGroup("admin"), userController.updateUser)
 
 module.exports = router

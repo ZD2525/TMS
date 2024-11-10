@@ -11,66 +11,85 @@ import NotFound from "./components/NotFound"
 axios.defaults.withCredentials = true
 
 const App = () => {
-  const [username, setUsername] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [username, setUsername] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [userProfile, setUserProfile] = useState(null)
 
   const location = useLocation()
   const navigate = useNavigate()
 
+  // Fetch user profile for displaying the username and determining admin status
   const fetchUserProfile = useCallback(async () => {
+    console.log("Fetching user profile...")
     try {
       const response = await axios.get("http://localhost:3000/getprofile")
+      console.log("User profile response:", response.data)
+
+      if (!response.data.username) {
+        throw new Error("User profile not found")
+      }
+
       setUsername(response.data.username)
-      setUserProfile(response.data)
       setIsAuthenticated(true)
-      return response.data
-    } catch (err) {
-      setIsAuthenticated(false)
+
+      // Additional group membership check
+      try {
+        const groupCheckResponse = await axios.post(
+          "http://localhost:3000/checkgroup",
+          { group: "admin" },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        )
+        console.log("Group check response:", groupCheckResponse.data)
+        setIsAdmin(groupCheckResponse.data.success)
+      } catch (groupCheckError) {
+        console.warn("Failed to verify group membership:", groupCheckError)
+        setIsAdmin(false)
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error)
       setUsername("")
-      setUserProfile(null)
+      setIsAdmin(false)
+      setIsAuthenticated(false)
       navigate("/login")
-      return null
     }
   }, [navigate])
 
-  // Centralized account status validation
-  const validateAccountStatus = useCallback(async () => {
-    try {
-      const profile = await fetchUserProfile()
-      if (!profile) {
-        handleLogout()
-        return
-      }
-      if (profile.accountStatus !== "Active") {
-        handleLogout()
-      }
-    } catch (error) {
-      console.error("Error validating account status:", error)
-      handleLogout()
-    }
-  }, [fetchUserProfile])
-
-  useEffect(() => {
-    if (location.pathname !== "/login") {
-      fetchUserProfile().then(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
-    }
-  }, [location.pathname, fetchUserProfile])
-
+  // Handle user logout
   const handleLogout = useCallback(async () => {
     try {
       await axios.post("http://localhost:3000/logout")
-      setIsAuthenticated(false)
-      setUsername("")
-      setUserProfile(null)
-      navigate("/login")
     } catch (error) {
       console.error("Logout failed:", error)
+    } finally {
+      setIsAuthenticated(false) // Update state
+      setIsAdmin(false)
+      setUsername("")
+      navigate("/login")
     }
   }, [navigate])
+
+  // Effect to initialize session on app load
+  useEffect(() => {
+    const initialize = async () => {
+      console.log("App component mounted. Initializing user session.")
+      if (location.pathname !== "/login") {
+        try {
+          await fetchUserProfile()
+          console.log("User profile fetched successfully.")
+        } catch (error) {
+          console.error("Failed to fetch user profile:", error)
+        }
+      }
+      setIsLoading(false)
+      console.log("Initialization complete.")
+    }
+    initialize()
+  }, [location.pathname, fetchUserProfile])
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -78,13 +97,13 @@ const App = () => {
 
   return (
     <>
-      {isAuthenticated && <Header username={username} handleLogout={handleLogout} isAdmin={userProfile?.isAdmin} validateAccountStatus={validateAccountStatus} />}
+      {isAuthenticated && <Header username={username} handleLogout={handleLogout} isAdmin={isAdmin} />}
       <div className="main-content">
         <Routes>
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/taskmanagementsystem" /> : <Login fetchUserProfile={fetchUserProfile} />} />
-          <Route path="/taskmanagementsystem" element={<TaskManagementSystem username={username} />} />
-          <Route path="/usermanagement" element={isAuthenticated && userProfile?.isAdmin ? <UserManagementSystem fetchUserProfile={fetchUserProfile} username={username} isAdmin={userProfile?.isAdmin} handleLogout={handleLogout} validateAccountStatus={validateAccountStatus} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />
-          <Route path="/editprofile" element={<EditProfile username={username} validateAccountStatus={validateAccountStatus} />} />
+          <Route path="/login" element={<Login onLoginSuccess={fetchUserProfile} />} />
+          <Route path="/taskmanagementsystem" element={<TaskManagementSystem />} />
+          <Route path="/usermanagement" element={isAuthenticated && isAdmin ? <UserManagementSystem handleLogout={handleLogout} username={username} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setIsAuthenticated={setIsAuthenticated} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />
+          <Route path="/editprofile" element={<EditProfile isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
