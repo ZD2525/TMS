@@ -11,8 +11,7 @@ exports.loginUser = async (req, res) => {
   // Validate required fields
   if (!username || !password) {
     return res.status(400).json({
-      error: "Invalid Credentials.",
-      details: [{ msg: "Username is required" }, { msg: "Password is required" }]
+      error: "Invalid Credentials."
     })
   }
 
@@ -24,8 +23,7 @@ exports.loginUser = async (req, res) => {
     // Check if user exists
     if (userResults.length === 0) {
       return res.status(401).json({
-        error: "Invalid Credentials.",
-        details: [{ msg: "Username or password is incorrect" }]
+        error: "Invalid Credentials."
       })
     }
 
@@ -34,8 +32,7 @@ exports.loginUser = async (req, res) => {
     // Check if the user's account status is active
     if (user.accountStatus !== "Active") {
       return res.status(401).json({
-        error: "Invalid Credentials.",
-        details: [{ msg: `Your account status is ${user.accountStatus}` }]
+        error: "Invalid Credentials."
       })
     }
 
@@ -43,8 +40,7 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
       return res.status(401).json({
-        error: "Invalid Credentials.",
-        details: [{ msg: "Username or password is incorrect" }]
+        error: "Invalid Credentials."
       })
     }
 
