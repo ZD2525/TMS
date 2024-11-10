@@ -37,33 +37,26 @@ const verifyToken = async (req, res, next) => {
 }
 
 // Check if user belongs to a specific group
-const CheckGroup =
-  (requiredGroup = null) =>
-  async (req, res, next) => {
-    // Determine the group to check
-    const group = requiredGroup || req.body?.group || req.query?.group || null
+const CheckGroup = groupname => async (req, res, next) => {
+  // Determine the group to check
+  const group = groupname || req.body?.group
 
-    // If no group is provided, respond with an error
-    if (!group) {
-      return res.status(400).json({ error: "Group name is required." })
-    }
-
-    // Check if the user is authenticated (req.user should already be set by previous middleware like verifyToken)
-    if (!req.user || !req.user.username) {
-      return res.status(401).json({ error: "Unauthorized access." })
-    }
-
-    try {
-      // Query to check if the user belongs to the specified group
-      const [[{ count }]] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
-
-      if (count > 0) {
-        return next() // User is in the required group, proceed to next middleware/controller
-      }
-      return res.status(403).json({ error: "User not permitted, check with admin." })
-    } catch (error) {
-      return res.status(500).json({ error: "Server error, try again later." })
-    }
+  // If no group is provided, respond with an error
+  if (!group) {
+    return res.status(400).json({ error: "Group name is required." })
   }
+
+  try {
+    // Query to check if the user belongs to the specified group
+    const [[{ count }]] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
+
+    if (count > 0) {
+      return next()
+    }
+    return res.status(403).json({ error: "User not permitted, check with admin." })
+  } catch (error) {
+    return res.status(500).json({ error: "Server error, try again later." })
+  }
+}
 
 module.exports = { verifyToken, CheckGroup }
