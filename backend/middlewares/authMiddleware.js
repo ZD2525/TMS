@@ -48,6 +48,8 @@ const CheckGroup = groupname => async (req, res, next) => {
   try {
     // Query to check if the user belongs to the specified group
     const [rows] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
+
+    // Number of matches found in the database
     const count = rows[0].count
 
     if (count > 0) {

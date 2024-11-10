@@ -338,7 +338,7 @@ exports.getProfile = async (req, res) => {
   const username = req.user.username
 
   try {
-    const query = "SELECT username, email, accountStatus FROM Accounts WHERE username = ?"
+    const query = "SELECT username, email FROM Accounts WHERE username = ?"
     const [userResults] = await db.query(query, [username])
 
     if (userResults.length === 0) {
@@ -347,8 +347,7 @@ exports.getProfile = async (req, res) => {
 
     res.json({
       username: userResults[0].username,
-      email: userResults[0].email,
-      accountStatus: userResults[0].accountStatus
+      email: userResults[0].email
     })
   } catch (error) {
     console.error("Error fetching profile:", error)
