@@ -21,11 +21,8 @@ const App = () => {
 
   // Fetch user profile for displaying the username and determining admin status
   const fetchUserProfile = useCallback(async () => {
-    console.log("Fetching user profile...")
     try {
       const response = await axios.get("http://localhost:3000/getprofile")
-      console.log("User profile response:", response.data)
-
       if (!response.data.username) {
         throw new Error("User profile not found")
       }
@@ -33,9 +30,9 @@ const App = () => {
       setUsername(response.data.username)
       setIsAuthenticated(true)
 
-      // Additional group membership check
+      // Check if user is admin
       try {
-        const groupCheckResponse = await axios.post(
+        const adminGroupCheck = await axios.post(
           "http://localhost:3000/checkgroup",
           { group: "admin" },
           {
@@ -44,10 +41,8 @@ const App = () => {
             }
           }
         )
-        console.log("Group check response:", groupCheckResponse.data)
-        setIsAdmin(groupCheckResponse.data.success)
-      } catch (groupCheckError) {
-        console.warn("Failed to verify group membership:", groupCheckError)
+        setIsAdmin(adminGroupCheck.data.success)
+      } catch (err) {
         setIsAdmin(false)
       }
     } catch (error) {
@@ -76,17 +71,14 @@ const App = () => {
   // Effect to initialize session on app load
   useEffect(() => {
     const initialize = async () => {
-      console.log("App component mounted. Initializing user session.")
       if (location.pathname !== "/login") {
         try {
           await fetchUserProfile()
-          console.log("User profile fetched successfully.")
         } catch (error) {
           console.error("Failed to fetch user profile:", error)
         }
       }
       setIsLoading(false)
-      console.log("Initialization complete.")
     }
     initialize()
   }, [location.pathname, fetchUserProfile])
@@ -103,7 +95,7 @@ const App = () => {
           <Route path="/login" element={<Login onLoginSuccess={fetchUserProfile} />} />
           <Route path="/taskmanagementsystem" element={<TaskManagementSystem />} />
           <Route path="/usermanagement" element={isAuthenticated && isAdmin ? <UserManagementSystem handleLogout={handleLogout} username={username} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setIsAuthenticated={setIsAuthenticated} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />
-          <Route path="/editprofile" element={<EditProfile isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+          <Route path="/editprofile" element={<EditProfile setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

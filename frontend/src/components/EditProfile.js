@@ -5,7 +5,7 @@ import "../assets/styles/EditProfile.css"
 
 axios.defaults.withCredentials = true
 
-const EditProfile = ({ isAuthenticated, setIsAuthenticated }) => {
+const EditProfile = ({ setIsAuthenticated }) => {
   const [currentEmail, setCurrentEmail] = useState("")
   const [newEmail, setNewEmail] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -13,6 +13,47 @@ const EditProfile = ({ isAuthenticated, setIsAuthenticated }) => {
   const [errorMessages, setErrorMessages] = useState([])
 
   const navigate = useNavigate()
+
+  const handleUpdate = async () => {
+    setErrorMessages([])
+    setMessage("")
+
+    try {
+      const response = await axios.put("http://localhost:3000/updateprofile", {
+        email: newEmail,
+        newPassword
+      })
+
+      // Successful response handling
+      setMessage(response.data.message) // Use the success message from the backend
+      setCurrentEmail(newEmail || currentEmail)
+      setNewEmail("")
+      setNewPassword("")
+
+      setTimeout(() => {
+        setMessage("")
+      }, 2000)
+    } catch (error) {
+      if (error.response?.status === 401) {
+        setIsAuthenticated(false)
+        navigate("/login")
+      } else if (error.response?.data?.details) {
+        // Use detailed error messages if available
+        const messages = error.response.data.details.map(err => err.msg)
+        setErrorMessages(messages)
+      } else if (error.response?.data?.error) {
+        // Handle single error message from backend
+        setErrorMessages([error.response.data.error])
+      } else {
+        console.error("Error updating profile:", error)
+        setErrorMessages(["An error occurred while updating the profile."])
+      }
+
+      setTimeout(() => {
+        setErrorMessages([])
+      }, 2000)
+    }
+  }
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,39 +70,6 @@ const EditProfile = ({ isAuthenticated, setIsAuthenticated }) => {
     }
     fetchProfile()
   }, [navigate, setIsAuthenticated])
-
-  const handleUpdate = async () => {
-    setErrorMessages([])
-    setMessage("")
-
-    try {
-      await axios.put("http://localhost:3000/updateprofile", {
-        email: newEmail,
-        newPassword
-      })
-
-      setMessage("Profile updated successfully")
-      setCurrentEmail(newEmail || currentEmail)
-      setNewEmail("")
-      setNewPassword("")
-
-      setTimeout(() => {
-        setMessage("")
-      }, 2000)
-    } catch (error) {
-      if (error.response?.status === 401) {
-        setIsAuthenticated(false)
-        navigate("/login")
-      } else {
-        console.error("Error updating profile:", error)
-        setErrorMessages(["An error occurred while updating the profile."])
-      }
-
-      setTimeout(() => {
-        setErrorMessages([])
-      }, 2000)
-    }
-  }
 
   return (
     <div className="edit-profile-container">

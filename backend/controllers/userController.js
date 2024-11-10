@@ -89,16 +89,11 @@ exports.logoutUser = (_req, res) => {
 // Get all users for user management
 exports.getAllUsers = async (_req, res) => {
   try {
-    console.log("Fetching all users from the Accounts table...")
     const userQuery = "SELECT username, email, accountStatus FROM Accounts"
     const [userResults] = await db.execute(userQuery)
 
-    console.log("User query results:", userResults)
-
     const groupQuery = "SELECT username, user_group FROM UserGroup"
     const [groupResults] = await db.execute(groupQuery)
-
-    console.log("User group query results:", groupResults)
 
     const groupMap = {}
     groupResults.forEach(({ username, user_group }) => {
@@ -113,8 +108,6 @@ exports.getAllUsers = async (_req, res) => {
       password: "********", // Masked password
       groups: groupMap[user.username] || [] // Assign groups or empty array if none exist
     }))
-
-    console.log("Final assembled user data:", userData)
     res.json(userData)
   } catch (error) {
     console.error("Error retrieving user data:", error)
