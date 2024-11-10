@@ -33,7 +33,6 @@ const Login = ({ onLoginSuccess }) => {
       }
     } catch (err) {
       setError(err.response?.data?.error || "Invalid Credentials.")
-      console.error("Login failed:", err)
     }
   }
 
