@@ -9,7 +9,6 @@ router.post("/login", userController.loginUser)
 // Authenticated routes
 router.post("/logout", verifyToken, userController.logoutUser)
 router.post("/checkgroup", verifyToken, CheckGroup(), (req, res) => {
-  console.log(req.body)
   res.json({ success: true })
 })
 router.get("/getprofile", verifyToken, userController.getProfile)
