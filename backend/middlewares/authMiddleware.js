@@ -28,7 +28,6 @@ const verifyToken = async (req, res, next) => {
       return res.status(401).json({ error: "Account is not active.", accountStatus: user.accountStatus })
     }
 
-    // Proceed to the next middleware if the token and account status are valid
     next()
   } catch (err) {
     res.clearCookie("token")
@@ -48,7 +47,8 @@ const CheckGroup = groupname => async (req, res, next) => {
 
   try {
     // Query to check if the user belongs to the specified group
-    const [[{ count }]] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
+    const [rows] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
+    const count = rows[0].count
 
     if (count > 0) {
       return next()

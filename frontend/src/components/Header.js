@@ -8,7 +8,7 @@ const Header = ({ username, isAdmin, handleLogout }) => {
 
   return (
     <div className="header">
-      <div className="welcome">Welcome, {username || "Guest"}</div>
+      <div className="welcome">Welcome, {username}</div>
       <nav>
         {isAdmin && (
           <>
