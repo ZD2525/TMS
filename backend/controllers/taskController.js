@@ -1,5 +1,5 @@
 const db = require("../models/db")
-const taskStateMap = require("../utils/mapTaskState")
+const mapTaskState = require("../utils/mapTaskState")
 
 // Create an Application (Project Lead)
 exports.createApplication = async (req, res) => {
@@ -79,7 +79,7 @@ exports.getPlans = async (req, res) => {
 // Create a Task (Project Lead)
 exports.createTask = async (req, res) => {
   const { Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate } = req.body
-  const mappedTaskState = taskStateMap[Task_state]
+  const mappedTaskState = mapTaskState(Task_state)
   if (mappedTaskState === undefined) {
     return res.status(400).send("Invalid Task_state provided.")
   }
@@ -102,31 +102,56 @@ exports.createTask = async (req, res) => {
 // Release Task to To-Do (Project Manager)
 exports.releaseTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap["To-Do"]
-  const currentState = taskStateMap.Open
+  const newState = mapTaskState("To-Do")
+  const currentState = mapTaskState("Open")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Releasing Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or already released.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or already released.")
+    }
     res.status(200).send("Task released to To-Do.")
   } catch (error) {
+    console.error("Error releasing task:", error)
     res.status(500).send("Error releasing task.")
   }
 }
 
 // Assign Task to Developer (Developer)
 exports.assignTask = async (req, res) => {
-  const { Task_id, Task_owner } = req.body
-  const newState = taskStateMap.Doing
-  const currentState = taskStateMap["To-Do"]
+  const { Task_id } = req.body
+  const newState = mapTaskState("Doing")
+  const currentState = mapTaskState("To-Do")
+
+  // Assuming you have a middleware that sets req.user with the authenticated user's data
+  const Task_owner = req.user.username // Adjust this according to your authentication setup
+
+  if (!Task_owner) {
+    return res.status(401).send("User information missing. Cannot assign task.")
+  }
+
+  console.log("Assigning Task:", Task_id, "to Owner:", Task_owner)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_owner = ?, Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [Task_owner, newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be assigned.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be assigned.")
+    }
     res.status(200).send("Task assigned successfully.")
   } catch (error) {
+    console.error("Error assigning task:", error)
     res.status(500).send("Error assigning task.")
   }
 }
@@ -134,47 +159,69 @@ exports.assignTask = async (req, res) => {
 // Unassign Task (Developer)
 exports.unassignTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap["To-Do"]
-  const currentState = taskStateMap.Doing
+  const newState = mapTaskState("To-Do")
+  const currentState = mapTaskState("Doing")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Unassigning Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_owner = NULL, Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be unassigned.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be unassigned.")
+    }
     res.status(200).send("Task unassigned successfully.")
   } catch (error) {
+    console.error("Error unassigning task:", error)
     res.status(500).send("Error unassigning task.")
   }
 }
 
-// Start Task (Developer)
-exports.startTask = async (req, res) => {
-  const { Task_id } = req.body
-  const newState = taskStateMap.Doing
-  const currentState = taskStateMap["To-Do"]
+// // Start Task (Developer)
+// exports.startTask = async (req, res) => {
+//   const { Task_id } = req.body
+//   const newState = mapTaskState.Doing
+//   const currentState = mapTaskState("To-Do")
 
-  const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
-  try {
-    const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be started.")
-    res.status(200).send("Task started successfully.")
-  } catch (error) {
-    res.status(500).send("Error starting task.")
-  }
-}
+//   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
+//   try {
+//     const [result] = await db.query(query, [newState, Task_id, currentState])
+//     if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be started.")
+//     res.status(200).send("Task started successfully.")
+//   } catch (error) {
+//     res.status(500).send("Error starting task.")
+//   }
+// }
 
 // Complete Task (Developer)
 exports.completeTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap.Done
-  const currentState = taskStateMap.Doing
+  const newState = mapTaskState("Done")
+  const currentState = mapTaskState("Doing")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Completing Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be completed.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be completed.")
+    }
     res.status(200).send("Task completed successfully.")
   } catch (error) {
+    console.error("Error completing task:", error)
     res.status(500).send("Error completing task.")
   }
 }
@@ -182,15 +229,26 @@ exports.completeTask = async (req, res) => {
 // Approve Task (Project Lead)
 exports.approveTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap.Closed
-  const currentState = taskStateMap.Done
+  const newState = mapTaskState("Closed")
+  const currentState = mapTaskState("Done")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Approving Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be approved.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be approved.")
+    }
     res.status(200).send("Task approved and closed.")
   } catch (error) {
+    console.error("Error approving task:", error)
     res.status(500).send("Error approving task.")
   }
 }
@@ -198,15 +256,26 @@ exports.approveTask = async (req, res) => {
 // Reject Task (Project Lead)
 exports.rejectTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap.Doing
-  const currentState = taskStateMap.Done
+  const newState = mapTaskState("Doing")
+  const currentState = mapTaskState("Done")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Rejecting Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be rejected.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be rejected.")
+    }
     res.status(200).send("Task rejected and moved to Doing.")
   } catch (error) {
+    console.error("Error rejecting task:", error)
     res.status(500).send("Error rejecting task.")
   }
 }
@@ -214,15 +283,26 @@ exports.rejectTask = async (req, res) => {
 // Close Task (Project Lead)
 exports.closeTask = async (req, res) => {
   const { Task_id } = req.body
-  const newState = taskStateMap.Closed
-  const currentState = taskStateMap.Done
+  const newState = mapTaskState("Closed")
+  const currentState = mapTaskState("Done")
+
+  if (newState === undefined || currentState === undefined) {
+    return res.status(400).send("Invalid task state mapping.")
+  }
+
+  console.log("Closing Task:", Task_id)
+  console.log("Current State:", currentState, "New State:", newState)
 
   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
   try {
     const [result] = await db.query(query, [newState, Task_id, currentState])
-    if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be closed.")
+    if (result.affectedRows === 0) {
+      console.log("No task was updated. Either task not found or state condition not met.")
+      return res.status(404).send("Task not found or cannot be closed.")
+    }
     res.status(200).send("Task closed successfully.")
   } catch (error) {
+    console.error("Error closing task:", error)
     res.status(500).send("Error closing task.")
   }
 }

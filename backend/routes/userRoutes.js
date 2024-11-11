@@ -50,7 +50,6 @@ router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.create
 router.put("/release-task", verifyToken, CheckGroup("PM"), taskController.releaseTask) // Project Manager
 router.put("/assign-task", verifyToken, CheckGroup("Dev"), taskController.assignTask) // Developer
 router.put("/unassign-task", verifyToken, CheckGroup("Dev"), taskController.unassignTask) // Developer
-router.put("/start-task", verifyToken, CheckGroup("Dev"), taskController.startTask) // Developer
 router.put("/complete-task", verifyToken, CheckGroup("Dev"), taskController.completeTask) // Developer
 router.put("/approve-task", verifyToken, CheckGroup("PL"), taskController.approveTask) // Project Lead
 router.put("/reject-task", verifyToken, CheckGroup("PL"), taskController.rejectTask) // Project Lead
