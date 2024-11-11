@@ -122,7 +122,7 @@ const TaskManagementSystem = () => {
     }
   }
 
-  const handleCardClick = app => {
+  const handleViewApplication = app => {
     navigate("/app", { state: { appAcronym: app.App_Acronym } }) // Pass App_Acronym as state
   }
 
@@ -137,7 +137,7 @@ const TaskManagementSystem = () => {
       <div className="application-grid">
         {applications.length > 0 ? (
           applications.map((app, index) => (
-            <div key={index} className="application-card" onClick={() => handleCardClick(app)} style={{ position: "relative", cursor: "pointer" }}>
+            <div key={index} className="application-card" style={{ position: "relative" }}>
               <h3>{app.App_Acronym}</h3>
               <p>
                 <strong>Description:</strong> {app.App_Description}
@@ -160,6 +160,20 @@ const TaskManagementSystem = () => {
                   ✏️ Edit
                 </button>
               )}
+              <span
+                className="view-application"
+                onClick={() => handleViewApplication(app)}
+                style={{
+                  display: "block",
+                  marginTop: "10px",
+                  color: "#007bff",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  textDecoration: "underline"
+                }}
+              >
+                View
+              </span>
             </div>
           ))
         ) : (

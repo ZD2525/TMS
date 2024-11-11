@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken")
 const db = require("../models/db")
+const mapTaskState = require("../utils/mapTaskState")
 const JWT_SECRET = process.env.JWT_SECRET
 
 const verifyToken = async (req, res, next) => {
@@ -61,18 +62,37 @@ const CheckGroup = groupname => async (req, res, next) => {
 
 const CheckTaskStatePermission = async (req, res, next) => {
   try {
-    const [[{ task_state, task_app_acronym }]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ?", [req.body.id])
+    // Fetch the task's current state and associated application acronym
+    const [[{ task_state, task_app_acronym }]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ? AND task_app_acronym = ?", [req.body.Task_id, req.body.App_Acronym])
 
-    if (req.body.state != task_state) {
-      return res.status(406).send("State error, please try again")
+    console.log("Retrieved values from the database:", { task_state, task_app_acronym })
+
+    if (task_state === undefined || !task_app_acronym) {
+      console.error("Task state or App Acronym not found")
+      return res.status(404).send("Task not found")
     }
 
-    const [[{ app_permit_create: create, app_permit_open: open, app_permit_todolist: todo, app_permit_doing: doing, app_permit_done: done }]] = await db.execute("SELECT app_permit_create, app_permit_open, app_permit_todolist, app_permit_doing, app_permit_done FROM application WHERE app_acronym = ?", [task_app_acronym])
+    // Log retrieved values for debugging
+    console.log("Retrieved task state:", task_state)
+    console.log("Task's App_Acronym:", task_app_acronym)
+
+    // Fetch the permissions for the application with the correct column names
+    const [[{ App_permit_Create: create, App_permit_Open: open, App_permit_toDoList: todo, App_permit_Doing: doing, App_permit_Done: done }]] = await db.execute("SELECT App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done FROM application WHERE App_Acronym = ?", [task_app_acronym])
+
+    // Log retrieved permissions for debugging
+    console.log("Retrieved permissions:", { create, open, todo, doing, done })
 
     const permissions = { create, open, todo, doing, done }
+    if (!permissions[task_state]) {
+      console.error("Invalid or missing permission for task state")
+      return res.status(403).send("Permission denied for the current task state.")
+    }
+
+    // Check the user's group permission for the task state
     CheckGroup(permissions[task_state])(req, res, next)
   } catch (error) {
-    return res.status(500).send("Server error, try again later")
+    console.error("Error in CheckTaskStatePermission:", error)
+    return res.status(500).send("Server error, try again later.")
   }
 }
 

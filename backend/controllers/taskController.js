@@ -142,23 +142,29 @@ exports.createTask = async (req, res) => {
 
 // Release Task to To-Do (Project Manager)
 exports.releaseTask = async (req, res) => {
-  const { Task_id } = req.body
-  const newState = mapTaskState("To-Do")
-  const currentState = mapTaskState("Open")
+  const { Task_id, App_Acronym } = req.body // Including App_Acronym
+  const newState = mapTaskState("To-Do") // State transition handled here
+  const currentState = mapTaskState("Open") // Expected current state
 
-  if (newState === undefined || currentState === undefined) {
-    return res.status(400).send("Invalid task state mapping.")
+  if (!Task_id || !App_Acronym) {
+    console.error("Missing Task_id or App_Acronym in request body")
+    return res.status(400).send("Task_id and App_Acronym are required.")
   }
 
   console.log("Releasing Task:", Task_id)
+  console.log("App_Acronym:", App_Acronym)
   console.log("Current State:", currentState, "New State:", newState)
 
-  const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
+  const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ? AND task_app_acronym = ?`
   try {
-    const [result] = await db.query(query, [newState, Task_id, currentState])
+    const [result] = await db.query(query, [newState, Task_id, currentState, App_Acronym])
+    console.log("SQL Query Executed:", query)
+    console.log("Query Parameters:", [newState, Task_id, currentState, App_Acronym])
+    console.log("Query Result:", result)
+
     if (result.affectedRows === 0) {
-      console.log("No task was updated. Either task not found or state condition not met.")
-      return res.status(404).send("Task not found or already released.")
+      console.log("No task was updated. Either task not found, state condition not met, or App_Acronym mismatch.")
+      return res.status(404).send("Task not found, already released, or App_Acronym does not match.")
     }
     res.status(200).send("Task released to To-Do.")
   } catch (error) {
