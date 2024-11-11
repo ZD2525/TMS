@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import axios from "axios"
 import "../assets/styles/AppPage.css"
+import { useLocation } from "react-router-dom" // Import useLocation to access passed state
 
 const AppPage = () => {
   const [tasks, setTasks] = useState([])
@@ -13,11 +14,20 @@ const AppPage = () => {
   })
   const [error, setError] = useState("")
 
+  const location = useLocation() // Access location to retrieve passed state
+  const { appAcronym } = location.state || {} // Extract the appAcronym from state if available
+
   useEffect(() => {
-    // Fetch tasks for the specific application (you may need to use params or state)
+    // Fetch tasks for the specific application using appAcronym
     const fetchTasks = async () => {
+      if (!appAcronym) {
+        setError("No application selected.")
+        return
+      }
+
       try {
-        const response = await axios.get("http://localhost:3000/tasks") // Adjust URL as needed
+        const response = await axios.post("http://localhost:3000/tasks", { App_Acronym: appAcronym })
+        console.log("Fetched tasks:", response.data) // Add this line to inspect the response
         setTasks(response.data)
       } catch (error) {
         console.error("Error fetching tasks:", error)
@@ -25,7 +35,7 @@ const AppPage = () => {
     }
 
     fetchTasks()
-  }, [])
+  }, [appAcronym])
 
   const handleOpenPlanModal = () => {
     setShowPlanModal(true)
@@ -49,7 +59,7 @@ const AppPage = () => {
 
   const handleCreatePlan = async () => {
     try {
-      await axios.post("http://localhost:3000/create-plan", planData)
+      await axios.post("http://localhost:3000/create-plan", { ...planData, App_Acronym: appAcronym })
       handleClosePlanModal()
       // Optionally, fetch plans or tasks to update the view
     } catch (err) {
@@ -59,24 +69,22 @@ const AppPage = () => {
 
   return (
     <div className="app-page">
-      <h1>Task Board</h1>
+      <h1>Task Board for {appAcronym || "Application"}</h1>
       <button onClick={handleOpenPlanModal} className="create-plan-button">
         Create Plan
       </button>
       <button className="create-task-button">Create Task</button>
       <div className="task-columns">
-        {["OPEN", "TODO", "DOING", "DONE", "CLOSED"].map(state => (
+        {["open", "todo", "doing", "done", "closed"].map(state => (
           <div key={state} className="task-column">
-            <h2>{state}</h2>
-            {tasks
-              .filter(task => task.state === state)
-              .map(task => (
-                <div key={task.id} className="task-card">
-                  <h3>{task.name}</h3>
-                  <p>{task.description}</p>
-                  {/* Additional task details */}
-                </div>
-              ))}
+            <h2>{state.toUpperCase()}</h2>
+            {(Array.isArray(tasks[state]) ? tasks[state] : []).map(task => (
+              <div key={task.id} className="task-card">
+                <h3>{task.name}</h3>
+                <p>{task.description}</p>
+                {/* Additional task details */}
+              </div>
+            ))}
           </div>
         ))}
       </div>

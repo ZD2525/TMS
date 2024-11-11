@@ -56,16 +56,23 @@ exports.getApplications = async (req, res) => {
 // Create a Plan (Project Manager)
 exports.createPlan = async (req, res) => {
   const { Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color } = req.body
+
+  if (!Plan_app_Acronym) {
+    return res.status(400).send("Plan_app_Acronym is required.")
+  }
+
   const query = `
     INSERT INTO Plan 
     (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) 
-    VALUES (?, ?, ?, ?, ?)`
+    VALUES (?, ?, ?, ?, ?)
+  `
   const values = [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color]
 
   try {
     await db.query(query, values)
     res.status(201).send("Plan created successfully.")
   } catch (error) {
+    console.error("Error creating plan:", error)
     res.status(500).send("Error creating plan.")
   }
 }
@@ -84,7 +91,23 @@ exports.getPlans = async (req, res) => {
 
 // Create a Task (Project Lead)
 exports.createTask = async (req, res) => {
-  const { Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate } = req.body
+  const {
+    Task_id,
+    Task_plan,
+    Task_app_Acronym, // Include App_Acronym from the request body
+    Task_name,
+    Task_description,
+    Task_notes,
+    Task_state,
+    Task_creator,
+    Task_owner,
+    Task_createDate
+  } = req.body
+
+  if (!Task_app_Acronym) {
+    return res.status(400).send("Task_app_Acronym is required.")
+  }
+
   const mappedTaskState = mapTaskState(Task_state)
   if (mappedTaskState === undefined) {
     return res.status(400).send("Invalid Task_state provided.")
@@ -92,9 +115,21 @@ exports.createTask = async (req, res) => {
 
   const query = `
     INSERT INTO Task 
-    (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  const values = [Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, mappedTaskState, Task_creator, Task_owner, Task_createDate]
+    (Task_id, Task_plan, task_app_acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `
+  const values = [
+    Task_id,
+    Task_plan,
+    Task_app_Acronym, // Using App_Acronym here
+    Task_name,
+    Task_description,
+    Task_notes,
+    mappedTaskState,
+    Task_creator,
+    Task_owner,
+    Task_createDate
+  ]
 
   try {
     await db.query(query, values)
@@ -315,27 +350,33 @@ exports.closeTask = async (req, res) => {
 
 // Retrieve tasks related to a specific application (All Roles)
 exports.getTasks = async (req, res) => {
-  const { appAcronym } = req.query // Extract appAcronym from the query parameters
+  const { App_Acronym } = req.body // Using App_Acronym from the request body
 
-  if (!appAcronym) {
-    return res.status(400).send("appAcronym is required.")
+  if (!App_Acronym) {
+    console.error("No App_Acronym provided")
+    return res.status(400).send("App_Acronym is required.")
   }
 
+  console.log("Fetching tasks for App_Acronym:", App_Acronym)
+
   const tasksQuery = `SELECT * FROM Task WHERE task_app_acronym = ?`
-  const plansQuery = `SELECT plan_mvp_name, plan_colour FROM Plan WHERE plan_app_acronym = ?`
+  const plansQuery = `SELECT plan_mvp_name, Plan_color FROM Plan WHERE plan_app_acronym = ?`
 
   try {
     // Fetch tasks related to the app acronym
-    const [tasksArray] = await db.execute(tasksQuery, [appAcronym])
+    const [tasksArray] = await db.execute(tasksQuery, [App_Acronym])
+    console.log("Fetched tasks from database:", tasksArray)
 
     // Fetch plans related to the app acronym
-    const [planArray] = await db.execute(plansQuery, [appAcronym])
+    const [planArray] = await db.execute(plansQuery, [App_Acronym])
+    console.log("Fetched plans from database:", planArray)
 
     // Create a mapping of plan names to their colors
     const plans = {}
     planArray.forEach(plan => {
-      plans[plan.plan_mvp_name] = plan.plan_colour
+      plans[plan.plan_mvp_name] = plan.Plan_color
     })
+    console.log("Plan mapping created:", plans)
 
     // Organize tasks by state
     const tasks = {
@@ -347,15 +388,30 @@ exports.getTasks = async (req, res) => {
     }
 
     tasksArray.forEach(task => {
-      tasks[task.task_state].push({
-        id: task.task_id,
-        name: task.task_name,
-        colour: plans[task.task_plan] || "", // Use color from plan mapping if available
-        owner: task.task_owner
-      })
+      console.log("Task object structure:", task) // Log the full task object
+      const stateKey = mapTaskState(task.Task_state) // Convert integer to string key using mapTaskState
+      console.log(`Mapped state for task ${task.Task_id}:`, stateKey)
+      if (!stateKey || !tasks[stateKey]) {
+        console.warn(`Unexpected or missing task state for task ${task.Task_id}:`, task.Task_state)
+      } else {
+        tasks[stateKey].push({
+          id: task.Task_id,
+          name: task.Task_name,
+          description: task.Task_description, // Added task description for display
+          colour: plans[task.Task_plan] || "", // Use color from plan mapping if available
+          owner: task.Task_owner
+        })
+        console.log(`Task added to state ${stateKey}:`, {
+          id: task.Task_id,
+          name: task.Task_name,
+          colour: plans[task.Task_plan] || "",
+          owner: task.Task_owner
+        })
+      }
     })
 
     // Respond with the organized tasks
+    console.log("Organized tasks to be sent:", tasks)
     res.json(tasks)
   } catch (error) {
     console.error("Error retrieving tasks:", error)

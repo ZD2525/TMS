@@ -123,7 +123,7 @@ const TaskManagementSystem = () => {
   }
 
   const handleCardClick = app => {
-    navigate(`/app`)
+    navigate("/app", { state: { appAcronym: app.App_Acronym } }) // Pass App_Acronym as state
   }
 
   return (

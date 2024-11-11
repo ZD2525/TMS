@@ -4,19 +4,6 @@ const userController = require("../controllers/userController")
 const taskController = require("../controllers/taskController")
 const { verifyToken, CheckGroup, CheckTaskStatePermission, appendTaskNotes } = require("../middlewares/authMiddleware")
 
-// console.log("AddTaskController defined:", !!taskController.AddTaskController)
-// console.log("AddPlanController defined:", !!taskController.AddPlanController)
-// console.log("AddAppController defined:", !!taskController.AddAppController)
-// console.log("EditAppController defined:", !!taskController.EditAppController)
-// console.log("PromoteTaskController defined:", !!taskController.promoteTaskController)
-// console.log("DemoteTaskController defined:", !!taskController.demoteTaskController)
-// console.log("EditTaskController defined:", !!taskController.EditTaskController)
-// console.log("ViewTaskController defined:", !!taskController.ViewTaskController)
-// console.log("ViewTasksController defined:", !!taskController.ViewTasksController)
-// console.log("ViewPlansController defined:", !!taskController.ViewPlansController)
-// console.log("ViewPlanListController defined:", !!taskController.viewPlanListController)
-// console.log("ViewAppsController defined:", !!taskController.ViewAppsController)
-
 // Public Routes
 router.post("/login", userController.loginUser)
 
@@ -54,6 +41,6 @@ router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermiss
 router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.approveTask) // Project Lead
 router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.rejectTask) // Project Lead
 router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.closeTask) // Project Lead
-router.get("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
+router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 
 module.exports = router
