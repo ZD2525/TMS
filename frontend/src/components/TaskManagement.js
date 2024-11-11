@@ -2,7 +2,7 @@ import React from "react"
 
 const TaskManagementSystem = ({}) => {
   return (
-    <div style={{ padding: "20px" }}>
+    <div>
       <h2>Applications</h2>
     </div>
   )

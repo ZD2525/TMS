@@ -32,15 +32,7 @@ const App = () => {
 
       // Check if user is admin
       try {
-        const adminGroupCheck = await axios.post(
-          "http://localhost:3000/checkgroup",
-          { group: "admin" },
-          {
-            headers: {
-              "Content-Type": "application/json"
-            }
-          }
-        )
+        const adminGroupCheck = await axios.post("http://localhost:3000/checkgroup", { group: "admin" })
         setIsAdmin(adminGroupCheck.data.success)
       } catch (err) {
         setIsAdmin(false)
@@ -61,14 +53,13 @@ const App = () => {
     } catch (error) {
       console.error("Logout failed:", error)
     } finally {
-      setIsAuthenticated(false) // Update state
+      setIsAuthenticated(false)
       setIsAdmin(false)
       setUsername("")
       navigate("/login")
     }
   }, [navigate])
 
-  // Effect to initialize session on app load
   useEffect(() => {
     const initialize = async () => {
       if (location.pathname !== "/login") {

@@ -6,11 +6,10 @@ import "../assets/styles/Login.css"
 axios.defaults.withCredentials = true
 
 const Login = ({ onLoginSuccess }) => {
-  // Accept onLoginSuccess as a prop
   const [loginUsername, setLoginUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState(null)
-  const [showPassword, setShowPassword] = useState(false) // State to manage password visibility
+  const [showPassword, setShowPassword] = useState(false)
 
   const navigate = useNavigate()
 
@@ -19,10 +18,7 @@ const Login = ({ onLoginSuccess }) => {
     setError(null)
 
     try {
-      const response = await axios.post("http://localhost:3000/login", {
-        username: loginUsername,
-        password
-      })
+      const response = await axios.post("http://localhost:3000/login", { username: loginUsername, password })
 
       if (response.data) {
         // Fetch profile only if the login is successful

@@ -10,7 +10,7 @@ const verifyToken = async (req, res, next) => {
   }
 
   try {
-    // Verify the token, including IP address and browser validation if included in payload
+    // Verify the token
     const decoded = jwt.verify(token, JWT_SECRET)
 
     // Set user details from the token
@@ -40,7 +40,6 @@ const CheckGroup = groupname => async (req, res, next) => {
   // Determine the group to check
   const group = groupname || req.body?.group
 
-  // If no group is provided, respond with an error
   if (!group) {
     return res.status(400).json({ error: "Group name is required." })
   }
@@ -49,7 +48,6 @@ const CheckGroup = groupname => async (req, res, next) => {
     // Query to check if the user belongs to the specified group
     const [rows] = await db.execute("SELECT COUNT(*) as count FROM UserGroup WHERE username = ? AND user_group = ?", [req.user.username, group])
 
-    // Number of matches found in the database
     const count = rows[0].count
 
     if (count > 0) {
