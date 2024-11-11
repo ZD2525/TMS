@@ -1,7 +1,21 @@
 const express = require("express")
 const router = express.Router()
 const userController = require("../controllers/userController")
-const { verifyToken, CheckGroup } = require("../middlewares/authMiddleware")
+const taskController = require("../controllers/taskController")
+const { verifyToken, CheckGroup, CheckTaskStatePermission, CheckCreatePermission } = require("../middlewares/authMiddleware")
+
+// console.log("AddTaskController defined:", !!taskController.AddTaskController)
+// console.log("AddPlanController defined:", !!taskController.AddPlanController)
+// console.log("AddAppController defined:", !!taskController.AddAppController)
+// console.log("EditAppController defined:", !!taskController.EditAppController)
+// console.log("PromoteTaskController defined:", !!taskController.promoteTaskController)
+// console.log("DemoteTaskController defined:", !!taskController.demoteTaskController)
+// console.log("EditTaskController defined:", !!taskController.EditTaskController)
+// console.log("ViewTaskController defined:", !!taskController.ViewTaskController)
+// console.log("ViewTasksController defined:", !!taskController.ViewTasksController)
+// console.log("ViewPlansController defined:", !!taskController.ViewPlansController)
+// console.log("ViewPlanListController defined:", !!taskController.viewPlanListController)
+// console.log("ViewAppsController defined:", !!taskController.ViewAppsController)
 
 // Public Routes
 router.post("/login", userController.loginUser)
@@ -20,5 +34,27 @@ router.post("/createuser", verifyToken, CheckGroup("admin"), userController.crea
 router.get("/groups", verifyToken, CheckGroup("admin"), userController.getGroups)
 router.post("/creategroup", verifyToken, CheckGroup("admin"), userController.createGroup)
 router.put("/updateuser", verifyToken, CheckGroup("admin"), userController.updateUser)
+
+// Task Management System Routes
+// Application routes (Project Lead access required)
+router.post("/create-application", verifyToken, CheckGroup("PL"), taskController.createApplication)
+router.put("/update-application", verifyToken, CheckGroup("PL"), taskController.updateApplication)
+router.get("/applications", verifyToken, taskController.getApplications) // No group restriction for viewing
+
+// Plan routes (Project Manager access required)
+router.post("/create-plan", verifyToken, CheckGroup("PM"), taskController.createPlan)
+router.get("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
+
+// Task routes
+router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.createTask) // Project Lead
+router.put("/release-task", verifyToken, CheckGroup("PM"), taskController.releaseTask) // Project Manager
+router.put("/assign-task", verifyToken, CheckGroup("Dev"), taskController.assignTask) // Developer
+router.put("/unassign-task", verifyToken, CheckGroup("Dev"), taskController.unassignTask) // Developer
+router.put("/start-task", verifyToken, CheckGroup("Dev"), taskController.startTask) // Developer
+router.put("/complete-task", verifyToken, CheckGroup("Dev"), taskController.completeTask) // Developer
+router.put("/approve-task", verifyToken, CheckGroup("PL"), taskController.approveTask) // Project Lead
+router.put("/reject-task", verifyToken, CheckGroup("PL"), taskController.rejectTask) // Project Lead
+router.put("/close-task", verifyToken, CheckGroup("PL"), taskController.closeTask) // Project Lead
+router.get("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 
 module.exports = router
