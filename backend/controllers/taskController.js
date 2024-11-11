@@ -3,17 +3,23 @@ const mapTaskState = require("../utils/mapTaskState")
 
 // Create an Application (Project Lead)
 exports.createApplication = async (req, res) => {
-  const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+  const { App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+
+  // Log the request body for debugging
+  console.log("Received data:", req.body)
+
   const query = `
     INSERT INTO APPLICATION 
-    (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
+    (App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  const values = [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create]
+
+  const values = [App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create]
 
   try {
     await db.query(query, values)
     res.status(201).send("Application created successfully.")
   } catch (error) {
+    console.error("Error creating application:", error)
     res.status(500).send("Error creating application.")
   }
 }
@@ -199,8 +205,8 @@ exports.unassignTask = async (req, res) => {
 //   }
 // }
 
-// Complete Task (Developer)
-exports.completeTask = async (req, res) => {
+// Send Task for Review (Developer)
+exports.reviewTask = async (req, res) => {
   const { Task_id } = req.body
   const newState = mapTaskState("Done")
   const currentState = mapTaskState("Doing")
@@ -307,14 +313,52 @@ exports.closeTask = async (req, res) => {
   }
 }
 
-// Retrieve all tasks (All Roles)
+// Retrieve tasks related to a specific application (All Roles)
 exports.getTasks = async (req, res) => {
-  const query = `SELECT * FROM Task`
+  const { appAcronym } = req.query // Extract appAcronym from the query parameters
+
+  if (!appAcronym) {
+    return res.status(400).send("appAcronym is required.")
+  }
+
+  const tasksQuery = `SELECT * FROM Task WHERE task_app_acronym = ?`
+  const plansQuery = `SELECT plan_mvp_name, plan_colour FROM Plan WHERE plan_app_acronym = ?`
 
   try {
-    const [results] = await db.query(query)
-    res.status(200).json(results)
+    // Fetch tasks related to the app acronym
+    const [tasksArray] = await db.execute(tasksQuery, [appAcronym])
+
+    // Fetch plans related to the app acronym
+    const [planArray] = await db.execute(plansQuery, [appAcronym])
+
+    // Create a mapping of plan names to their colors
+    const plans = {}
+    planArray.forEach(plan => {
+      plans[plan.plan_mvp_name] = plan.plan_colour
+    })
+
+    // Organize tasks by state
+    const tasks = {
+      open: [],
+      todo: [],
+      doing: [],
+      done: [],
+      closed: []
+    }
+
+    tasksArray.forEach(task => {
+      tasks[task.task_state].push({
+        id: task.task_id,
+        name: task.task_name,
+        colour: plans[task.task_plan] || "", // Use color from plan mapping if available
+        owner: task.task_owner
+      })
+    })
+
+    // Respond with the organized tasks
+    res.json(tasks)
   } catch (error) {
-    res.status(500).send("Error retrieving tasks.")
+    console.error("Error retrieving tasks:", error)
+    res.status(500).send("Server error, please try again later.")
   }
 }

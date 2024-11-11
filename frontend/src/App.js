@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom"
 import axios from "axios"
 import TaskManagementSystem from "./components/TaskManagement"
+import AppPage from "./components/AppPage"
 import UserManagementSystem from "./components/UserManagement"
 import Login from "./components/Login"
 import Header from "./components/Header"
@@ -85,6 +86,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={fetchUserProfile} />} />
           <Route path="/taskmanagementsystem" element={<TaskManagementSystem />} />
+          <Route path="/app" element={<AppPage />} />
           <Route path="/usermanagement" element={isAuthenticated && isAdmin ? <UserManagementSystem handleLogout={handleLogout} username={username} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setIsAuthenticated={setIsAuthenticated} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />
           <Route path="/editprofile" element={<EditProfile setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="*" element={<NotFound />} />

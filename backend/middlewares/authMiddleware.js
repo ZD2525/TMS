@@ -76,13 +76,40 @@ const CheckTaskStatePermission = async (req, res, next) => {
   }
 }
 
-const CheckCreatePermission = async (req, res, next) => {
+// const CheckCreatePermission = async (req, res, next) => {
+//   try {
+//     const [[{ create }]] = await db.execute("SELECT app_permit_create AS `create` FROM application WHERE app_acronym = ?", [req.body.app_acronym])
+//     CheckGroup(create)(req, res, next)
+//   } catch (error) {
+//     return res.status(500).send("Server error, try again later")
+//   }
+// }
+
+const appendTaskNotes = async (req, res, next) => {
+  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+  let notes = ""
+  let state = " - "
+
   try {
-    const [[{ create }]] = await db.execute("SELECT app_permit_create AS `create` FROM application WHERE app_acronym = ?", [req.body.app_acronym])
-    CheckGroup(create)(req, res, next)
+    if (req.body.taskId) {
+      // Consider renaming 'id' to 'taskId' for clarity
+      const [[task]] = await db.execute("SELECT task_notes, task_state FROM task WHERE task_id = ?", [req.body.taskId])
+
+      if (task) {
+        notes = task.task_notes || ""
+        // Optional: Map state if needed
+        state = typeof task.task_state === "number" ? mapTaskState(task.task_state) || task.task_state : task.task_state
+      }
+    }
+
+    // Format the notes to be appended
+    req.body.notes = req.body.notes ? `*************\n\n[${req.username}, ${state}, ${timestamp} (UTC)]\n\n${req.body.notes}\n\n${notes}` : notes
   } catch (error) {
+    console.error("Error stamping task notes:", error)
     return res.status(500).send("Server error, try again later")
   }
+
+  next() // Proceed to the next middleware or route handler
 }
 
-module.exports = { verifyToken, CheckGroup, CheckTaskStatePermission, CheckCreatePermission }
+module.exports = { verifyToken, CheckGroup, CheckTaskStatePermission, appendTaskNotes }

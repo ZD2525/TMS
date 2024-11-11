@@ -2,7 +2,7 @@ const express = require("express")
 const router = express.Router()
 const userController = require("../controllers/userController")
 const taskController = require("../controllers/taskController")
-const { verifyToken, CheckGroup, CheckTaskStatePermission, CheckCreatePermission } = require("../middlewares/authMiddleware")
+const { verifyToken, CheckGroup, CheckTaskStatePermission, appendTaskNotes } = require("../middlewares/authMiddleware")
 
 // console.log("AddTaskController defined:", !!taskController.AddTaskController)
 // console.log("AddPlanController defined:", !!taskController.AddPlanController)
@@ -31,7 +31,7 @@ router.put("/updateprofile", verifyToken, userController.updateProfile)
 // Admin-Protected Routes
 router.get("/getallusers", verifyToken, CheckGroup("admin"), userController.getAllUsers)
 router.post("/createuser", verifyToken, CheckGroup("admin"), userController.createUser)
-router.get("/groups", verifyToken, CheckGroup("admin"), userController.getGroups)
+router.get("/groups", verifyToken, userController.getGroups)
 router.post("/creategroup", verifyToken, CheckGroup("admin"), userController.createGroup)
 router.put("/updateuser", verifyToken, CheckGroup("admin"), userController.updateUser)
 
@@ -45,15 +45,15 @@ router.get("/applications", verifyToken, taskController.getApplications) // No g
 router.post("/create-plan", verifyToken, CheckGroup("PM"), taskController.createPlan)
 router.get("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
 
-// Task routes
-router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.createTask) // Project Lead
-router.put("/release-task", verifyToken, CheckGroup("PM"), taskController.releaseTask) // Project Manager
-router.put("/assign-task", verifyToken, CheckGroup("Dev"), taskController.assignTask) // Developer
-router.put("/unassign-task", verifyToken, CheckGroup("Dev"), taskController.unassignTask) // Developer
-router.put("/complete-task", verifyToken, CheckGroup("Dev"), taskController.completeTask) // Developer
-router.put("/approve-task", verifyToken, CheckGroup("PL"), taskController.approveTask) // Project Lead
-router.put("/reject-task", verifyToken, CheckGroup("PL"), taskController.rejectTask) // Project Lead
-router.put("/close-task", verifyToken, CheckGroup("PL"), taskController.closeTask) // Project Lead
+// Task Routes
+router.post("/create-task", verifyToken, CheckGroup("PL"), appendTaskNotes, taskController.createTask) // Project Lead
+router.put("/release-task", verifyToken, CheckGroup("PM"), CheckTaskStatePermission, appendTaskNotes, taskController.releaseTask) // Project Manager
+router.put("/assign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.assignTask) // Developer
+router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.unassignTask) // Developer
+router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.reviewTask) // Developer
+router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.approveTask) // Project Lead
+router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.rejectTask) // Project Lead
+router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.closeTask) // Project Lead
 router.get("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 
 module.exports = router
