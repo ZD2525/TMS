@@ -129,21 +129,13 @@ const AppPage = ({ currentUser }) => {
       return
     }
 
-    const payload = { ...taskData, App_Acronym: appAcronym }
-
-    // Remove Task_plan-related fields if Task_plan is empty
-    if (!taskData.Task_plan) {
-      delete payload.Task_plan
-      delete payload.Task_planStartDate
-      delete payload.Task_planEndDate
-    }
-
     try {
-      const response = await axios.post("http://localhost:3000/create-task", payload)
+      const response = await axios.post("http://localhost:3000/create-task", { ...taskData, App_Acronym: appAcronym })
       if (response.data && response.data.log) {
         setLogs(prevLogs => [response.data.log, ...prevLogs])
       }
-      handleCloseTaskModal()
+      handleCloseTaskModal() // Close the modal after successful creation
+      fetchTasks() // Refresh the task list to show the new task
     } catch (err) {
       setError(err.response?.data?.error || "An unexpected error occurred.")
     }
