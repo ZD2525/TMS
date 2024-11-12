@@ -429,7 +429,8 @@ exports.getTasks = async (req, res) => {
           id: task.Task_id,
           name: task.Task_name,
           description: task.Task_description,
-          colour: plans[task.Task_plan] || "",
+          colour: plans[task.Task_plan] || "", // Keep the color mapping as is
+          planName: task.Task_plan || "No Plan", // Add the plan name mapping
           owner: task.Task_owner
         })
         console.log(`Task added to state ${stateKey}:`, {
@@ -446,6 +447,42 @@ exports.getTasks = async (req, res) => {
     res.json(tasks)
   } catch (error) {
     console.error("Error retrieving tasks:", error)
+    res.status(500).send("Server error, please try again later.")
+  }
+}
+
+exports.viewTask = async (req, res) => {
+  const { taskId } = req.body
+
+  if (!taskId) {
+    return res.status(400).send("Task ID is required.")
+  }
+
+  try {
+    const taskQuery = `
+      SELECT 
+        t.*,
+        p.Plan_startDate,
+        p.Plan_endDate
+      FROM Task t
+      LEFT JOIN Plan p ON t.Task_plan = p.Plan_MVP_name
+      WHERE t.Task_id = ?
+    `
+    const [task] = await db.execute(taskQuery, [taskId])
+
+    if (!task.length) {
+      return res.status(404).send("Task not found.")
+    }
+
+    // Map the Task_state to a readable format
+    const taskWithMappedState = {
+      ...task[0],
+      Task_state: mapTaskState(task[0].Task_state)
+    }
+
+    res.json(taskWithMappedState) // Send the modified task object
+  } catch (error) {
+    console.error("Error fetching task:", error)
     res.status(500).send("Server error, please try again later.")
   }
 }

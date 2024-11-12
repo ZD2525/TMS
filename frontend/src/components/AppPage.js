@@ -7,6 +7,7 @@ const AppPage = ({ currentUser }) => {
   const [tasks, setTasks] = useState([])
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showTaskViewModal, setShowTaskViewModal] = useState(false)
   const [plans, setPlans] = useState([])
   const [planData, setPlanData] = useState({
     Plan_MVP_name: "",
@@ -25,13 +26,14 @@ const AppPage = ({ currentUser }) => {
     Task_planStartDate: "",
     Task_planEndDate: ""
   })
+  const [selectedTask, setSelectedTask] = useState(null)
   const [error, setError] = useState("")
   const [logs, setLogs] = useState([])
 
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
-  // Fetch tasks function (defined outside useEffect)
+  // Fetch tasks function
   const fetchTasks = async () => {
     if (!appAcronym) {
       setError("No application selected.")
@@ -66,6 +68,17 @@ const AppPage = ({ currentUser }) => {
     setShowTaskModal(true)
   }
 
+  const handleOpenTaskViewModal = async task => {
+    try {
+      const response = await axios.post("http://localhost:3000/task", { taskId: task.id })
+      setSelectedTask(response.data)
+      setShowTaskViewModal(true)
+    } catch (error) {
+      console.error("Error fetching task details:", error)
+      setError("Unable to fetch task details.")
+    }
+  }
+
   const handleClosePlanModal = () => {
     setShowPlanModal(false)
     setPlanData({
@@ -94,9 +107,19 @@ const AppPage = ({ currentUser }) => {
     setError("")
   }
 
+  const handleCloseTaskViewModal = () => {
+    setShowTaskViewModal(false)
+    setSelectedTask(null)
+  }
+
   const handleChange = e => {
     const { name, value } = e.target
     setPlanData(prevData => ({ ...prevData, [name]: value }))
+
+    // Dynamically update the background color for the color input
+    if (name === "Plan_color") {
+      e.target.style.backgroundColor = value
+    }
   }
 
   const handleTaskChange = e => {
@@ -141,6 +164,11 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
+  const hasReleasePermission = () => {
+    // Example permission check logic, update based on your app logic
+    return currentUser.groups && currentUser.groups.includes("PM")
+  }
+
   return (
     <div className="app-page">
       <h1>{appAcronym}</h1>
@@ -155,9 +183,16 @@ const AppPage = ({ currentUser }) => {
           <div key={state} className="task-column">
             <h2>{state.toUpperCase()}</h2>
             {(Array.isArray(tasks[state]) ? tasks[state] : []).map(task => (
-              <div key={task.id} className="task-card">
-                <h3>{task.name}</h3>
-                <p>{task.description}</p>
+              <div key={task.id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
+                <h3>{task.id}</h3> {/* Display Task ID */}
+                <p>{task.description}</p> {/* Display Task Description */}
+                <div className="task-card-footer">
+                  <span className="plan-name" style={{ backgroundColor: task.colour }}>
+                    {task.planName || "No Plan"}
+                  </span>{" "}
+                  {/* Plan Name on bottom left */}
+                  <span className="task-owner">{task.owner}</span> {/* Owner on bottom right */}
+                </div>
               </div>
             ))}
           </div>
@@ -195,7 +230,7 @@ const AppPage = ({ currentUser }) => {
 
       {showTaskModal && (
         <div className="modal-overlay" onClick={handleCloseTaskModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+          <div className="modal-content task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
             <div className="task-modal-container">
               <div className="task-creation-section">
                 <h2>Create Task</h2>
@@ -237,6 +272,58 @@ const AppPage = ({ currentUser }) => {
                 </div>
                 <button onClick={handleCreateTask}>Create</button>
                 <button onClick={handleCloseTaskModal}>Cancel</button>
+              </div>
+
+              <div className="task-logs-section">
+                <h3>Logs</h3>
+                <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTaskViewModal && selectedTask && (
+        <div className="modal-overlay" onClick={handleCloseTaskViewModal}>
+          <div className="modal-content task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+            <div className="task-modal-container">
+              <div className="task-creation-section">
+                <h2>View Task</h2>
+                <div className="form-group">
+                  <label>Creator:</label>
+                  <input type="text" value={selectedTask.Task_creator || ""} readOnly />
+
+                  <label>Creation Date:</label>
+                  <input type="text" value={selectedTask.Task_createDate || ""} readOnly />
+
+                  <label>Status:</label>
+                  <input type="text" value={selectedTask.Task_state || ""} readOnly />
+
+                  <label>Task Name:</label>
+                  <input type="text" value={selectedTask.Task_name || ""} readOnly />
+
+                  <label>Task Owner:</label>
+                  <input type="text" value={selectedTask.Task_owner || ""} readOnly />
+
+                  <label>Description:</label>
+                  <textarea value={selectedTask.Task_description || ""} readOnly />
+
+                  <label>Plan Name:</label>
+                  <input type="text" value={selectedTask.Task_plan || "No Plan"} readOnly />
+
+                  <label>Plan Start Date:</label>
+                  <input type="text" value={selectedTask.Plan_startDate || ""} readOnly />
+
+                  <label>Plan End Date:</label>
+                  <input type="text" value={selectedTask.Plan_endDate || ""} readOnly />
+                </div>
+                {hasReleasePermission() && (
+                  <div>
+                    <button>Release</button>
+                    <button>Save</button>
+                  </div>
+                )}
+                <button onClick={handleCloseTaskViewModal}>Cancel</button>
               </div>
 
               <div className="task-logs-section">

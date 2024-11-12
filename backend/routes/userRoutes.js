@@ -42,5 +42,6 @@ router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermiss
 router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.rejectTask) // Project Lead
 router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.closeTask) // Project Lead
 router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
+router.post("/task", verifyToken, taskController.viewTask)
 
 module.exports = router

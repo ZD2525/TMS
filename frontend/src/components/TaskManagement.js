@@ -139,17 +139,7 @@ const TaskManagementSystem = () => {
       <div className="application-grid">
         {applications.length > 0 ? (
           applications.map((app, index) => (
-            <div key={index} className="application-card" style={{ position: "relative" }}>
-              <h3>{app.App_Acronym}</h3>
-              <p>
-                <strong>Description:</strong> {app.App_Description}
-              </p>
-              <p>
-                <strong>Start Date:</strong> {new Date(app.App_startDate).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>End Date:</strong> {new Date(app.App_endDate).toLocaleDateString()}
-              </p>
+            <div key={index} className="application-card">
               {userRole === "PL" && (
                 <button
                   className="edit-button"
@@ -161,7 +151,26 @@ const TaskManagementSystem = () => {
                   ✏️
                 </button>
               )}
-              <span className="view-application" onClick={() => handleViewApplication(app)} style={{ display: "block", marginTop: "10px", cursor: "pointer", textAlign: "center" }}>
+              <h3>{app.App_Acronym}</h3>
+              <p>
+                <strong>Description:</strong> {app.App_Description}
+              </p>
+              <p>
+                <strong>Start Date:</strong> {new Date(app.App_startDate).toLocaleDateString()}
+              </p>
+              <p>
+                <strong>End Date:</strong> {new Date(app.App_endDate).toLocaleDateString()}
+              </p>
+              <span
+                className="view-application"
+                onClick={() => handleViewApplication(app)}
+                style={{
+                  display: "block",
+                  marginTop: "10px",
+                  cursor: "pointer",
+                  textAlign: "center"
+                }}
+              >
                 View
               </span>
             </div>
@@ -174,15 +183,19 @@ const TaskManagementSystem = () => {
       <Modal isOpen={showCreateModal} onRequestClose={handleCloseModal} contentLabel={editMode ? "Edit Application Modal" : "Create Application Modal"} className="app-modal-content" overlayClassName="app-modal-overlay">
         <h2>{editMode ? "Edit App" : "Create App"}</h2>
         {error && <div className="error-box">{error}</div>}
-        <div className="form-group">
-          <label>
-            Name:
-            <input type="text" name="App_Acronym" value={formData.App_Acronym} onChange={handleChange} />
-          </label>
-          <label>
-            RNumber:
-            <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
-          </label>
+        <div className="form-group-row">
+          <div className="form-group">
+            <label>
+              Name:
+              <input type="text" name="App_Acronym" value={formData.App_Acronym} onChange={handleChange} />
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              RNumber:
+              <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
+            </label>
+          </div>
         </div>
         <div className="form-group">
           <label>
@@ -190,72 +203,88 @@ const TaskManagementSystem = () => {
             <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} rows="4" />
           </label>
         </div>
-        <div className="form-group">
-          <label>
-            Start Date:
-            <input type="date" name="App_startDate" value={formData.App_startDate} onChange={handleChange} />
-          </label>
-          <label>
-            End Date:
-            <input type="date" name="App_endDate" value={formData.App_endDate} onChange={handleChange} />
-          </label>
+        <div className="form-group-row">
+          <div className="form-group">
+            <label>
+              Start Date:
+              <input type="date" name="App_startDate" value={formData.App_startDate} onChange={handleChange} />
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              End Date:
+              <input type="date" name="App_endDate" value={formData.App_endDate} onChange={handleChange} />
+            </label>
+          </div>
         </div>
-        <div className="form-group">
-          <label>
-            Permit Open:
-            <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
-              <option value="">Select Group</option>
-              {userGroups.map((group, index) => (
-                <option key={index} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Permit Todo:
-            <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
-              <option value="">Select Group</option>
-              {userGroups.map((group, index) => (
-                <option key={index} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Permit Doing:
-            <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
-              <option value="">Select Group</option>
-              {userGroups.map((group, index) => (
-                <option key={index} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Permit Done:
-            <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
-              <option value="">Select Group</option>
-              {userGroups.map((group, index) => (
-                <option key={index} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Permit Create:
-            <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
-              <option value="">Select Group</option>
-              {userGroups.map((group, index) => (
-                <option key={index} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="form-group-row">
+          <div className="form-group">
+            <label>
+              Permit Open:
+              <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
+                <option value="">Select Group</option>
+                {userGroups.map((group, index) => (
+                  <option key={index} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Permit Todo:
+              <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
+                <option value="">Select Group</option>
+                {userGroups.map((group, index) => (
+                  <option key={index} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div className="form-group-row">
+          <div className="form-group">
+            <label>
+              Permit Doing:
+              <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
+                <option value="">Select Group</option>
+                {userGroups.map((group, index) => (
+                  <option key={index} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Permit Done:
+              <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
+                <option value="">Select Group</option>
+                {userGroups.map((group, index) => (
+                  <option key={index} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Permit Create:
+              <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
+                <option value="">Select Group</option>
+                {userGroups.map((group, index) => (
+                  <option key={index} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
         <button onClick={handleSubmit}>{editMode ? "Update" : "Create"}</button>
         <button onClick={handleCloseModal}>Cancel</button>
