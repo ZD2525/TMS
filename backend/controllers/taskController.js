@@ -96,50 +96,69 @@ exports.getPlans = async (req, res) => {
   }
 }
 
-// Create a Task (Project Lead)
 exports.createTask = async (req, res) => {
   const {
-    Task_id,
     Task_plan,
-    Task_app_Acronym, // Include App_Acronym from the request body
+    Task_app_Acronym,
     Task_name,
-    Task_description,
-    Task_notes,
-    Task_state,
+    Task_description = "", // Default to empty string if not provided
+    Task_notes = "", // Default to empty string if not provided
     Task_creator,
     Task_owner,
     Task_createDate
   } = req.body
 
-  if (!Task_app_Acronym) {
-    return res.status(400).send("Task_app_Acronym is required.")
+  // Set the default state to OPEN (0) for new tasks
+  const Task_state = 0 // OPEN state
+
+  console.log("Received request:", req.body)
+
+  if (!Task_app_Acronym || !Task_id || !Task_name || !Task_creator || !Task_owner || !Task_createDate) {
+    return res.status(400).send("Required fields are missing.")
   }
 
-  const mappedTaskState = mapTaskState(Task_state)
-  if (mappedTaskState === undefined) {
-    return res.status(400).send("Invalid Task_state provided.")
+  // Generate Task_id with Task_Rnumber logic
+  let Task_id = ""
+  try {
+    // Fetch the current highest Task_Rnumber for the given app acronym
+    const queryMaxTaskNumber = `
+      SELECT MAX(CAST(SUBSTRING_INDEX(Task_id, '_', -1) AS UNSIGNED)) AS maxTaskNumber 
+      FROM Task 
+      WHERE Task_app_Acronym = ?
+    `
+    const [result] = await db.query(queryMaxTaskNumber, [Task_app_Acronym])
+    const maxTaskNumber = result[0].maxTaskNumber || 0
+    const newTaskNumber = maxTaskNumber + 1
+
+    // Generate the new Task_id
+    Task_id = `${Task_app_Acronym}_${newTaskNumber}`
+  } catch (error) {
+    console.error("Error generating Task_id:", error)
+    return res.status(500).send("Error generating Task_id.")
   }
 
-  const query = `
+  // Insert new task into the database
+  const insertTaskQuery = `
     INSERT INTO Task 
-    (Task_id, Task_plan, task_app_acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
+    (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `
   const values = [
     Task_id,
     Task_plan,
-    Task_app_Acronym, // Using App_Acronym here
+    Task_app_Acronym,
     Task_name,
     Task_description,
     Task_notes,
-    mappedTaskState,
+    Task_state, // Default state to OPEN (0)
     Task_creator,
     Task_owner,
     Task_createDate
   ]
 
   try {
-    await db.query(query, values)
+    await db.query(insertTaskQuery, values)
+    console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=OPEN, Created by=${Task_creator}, Date=${Task_createDate}`)
     res.status(201).send("Task created successfully.")
   } catch (error) {
     console.error("Error creating task:", error)

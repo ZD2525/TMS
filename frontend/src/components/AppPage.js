@@ -6,19 +6,31 @@ import { useLocation } from "react-router-dom"
 const AppPage = ({ currentUser }) => {
   const [tasks, setTasks] = useState([])
   const [showPlanModal, setShowPlanModal] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [plans, setPlans] = useState([]) // Add state for plans
   const [planData, setPlanData] = useState({
     Plan_MVP_name: "",
     Plan_startDate: "",
     Plan_endDate: "",
     Plan_color: "#ffffff"
   })
+  const [taskData, setTaskData] = useState({
+    Task_creator: currentUser.username,
+    Task_createDate: new Date().toLocaleDateString(),
+    Task_status: "OPEN", // Display value for UI; actual state will be 0 (OPEN) in the backend
+    Task_name: "",
+    Task_owner: currentUser.username,
+    Task_description: "",
+    Task_plan: "",
+    Task_planStartDate: "",
+    Task_planEndDate: ""
+  })
   const [error, setError] = useState("")
-  const [userGroups, setUserGroups] = useState([]) // State for storing user groups
+  const [logs, setLogs] = useState([])
 
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
-  // Fetch tasks and user groups on mount
   useEffect(() => {
     const fetchTasks = async () => {
       if (!appAcronym) {
@@ -33,21 +45,25 @@ const AppPage = ({ currentUser }) => {
       }
     }
 
-    const fetchUserGroups = async () => {
+    const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/user-groups", { params: { username: currentUser.username } })
-        setUserGroups(response.data.groups)
+        const response = await axios.get("http://localhost:3000/plans")
+        setPlans(response.data)
       } catch (error) {
-        console.error("Error fetching user groups:", error)
+        console.error("Error fetching plans:", error)
       }
     }
 
     fetchTasks()
-    fetchUserGroups()
-  }, [appAcronym, currentUser.username])
+    fetchPlans()
+  }, [appAcronym])
 
   const handleOpenPlanModal = () => {
     setShowPlanModal(true)
+  }
+
+  const handleOpenTaskModal = () => {
+    setShowTaskModal(true)
   }
 
   const handleClosePlanModal = () => {
@@ -61,9 +77,41 @@ const AppPage = ({ currentUser }) => {
     setError("")
   }
 
+  const handleCloseTaskModal = () => {
+    setShowTaskModal(false)
+    setTaskData({
+      Task_creator: currentUser.username,
+      Task_createDate: new Date().toLocaleDateString(),
+      Task_status: "OPEN",
+      Task_name: "",
+      Task_owner: currentUser.username,
+      Task_description: "",
+      Task_plan: "",
+      Task_planStartDate: "",
+      Task_planEndDate: ""
+    })
+    setLogs([])
+    setError("")
+  }
+
   const handleChange = e => {
     const { name, value } = e.target
     setPlanData(prevData => ({ ...prevData, [name]: value }))
+  }
+
+  const handleTaskChange = e => {
+    const { name, value } = e.target
+    setTaskData(prevData => ({ ...prevData, [name]: value }))
+  }
+
+  const handlePlanSelection = e => {
+    const selectedPlan = plans.find(plan => plan.Plan_MVP_name === e.target.value)
+    setTaskData(prevData => ({
+      ...prevData,
+      Task_plan: selectedPlan ? selectedPlan.Plan_MVP_name : "", // Set to empty if no plan selected
+      Task_planStartDate: selectedPlan?.Plan_startDate ? new Date(selectedPlan.Plan_startDate).toISOString().split("T")[0] : "",
+      Task_planEndDate: selectedPlan?.Plan_endDate ? new Date(selectedPlan.Plan_endDate).toISOString().split("T")[0] : ""
+    }))
   }
 
   const handleCreatePlan = async () => {
@@ -75,18 +123,41 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  // Conditional rendering functions
-  const isUserInGroup = group => userGroups.includes(group)
+  const handleCreateTask = async () => {
+    if (!taskData.Task_name) {
+      setError("Task name is required.")
+      return
+    }
+
+    const payload = { ...taskData, App_Acronym: appAcronym }
+
+    // Remove Task_plan-related fields if Task_plan is empty
+    if (!taskData.Task_plan) {
+      delete payload.Task_plan
+      delete payload.Task_planStartDate
+      delete payload.Task_planEndDate
+    }
+
+    try {
+      const response = await axios.post("http://localhost:3000/create-task", payload)
+      if (response.data && response.data.log) {
+        setLogs(prevLogs => [response.data.log, ...prevLogs])
+      }
+      handleCloseTaskModal()
+    } catch (err) {
+      setError(err.response?.data?.error || "An unexpected error occurred.")
+    }
+  }
 
   return (
     <div className="app-page">
       <h1>Task Board for {appAcronym || "Application"}</h1>
-      {isUserInGroup("PM") && (
-        <button onClick={handleOpenPlanModal} className="create-plan-button">
-          Create Plan
-        </button>
-      )}
-      {isUserInGroup("PL") && <button className="create-task-button">Create Task</button>}
+      <button onClick={handleOpenPlanModal} className="create-plan-button">
+        Create Plan
+      </button>
+      <button onClick={handleOpenTaskModal} className="create-task-button">
+        Create Task
+      </button>
       <div className="task-columns">
         {["open", "todo", "doing", "done", "closed"].map(state => (
           <div key={state} className="task-column">
@@ -126,6 +197,61 @@ const AppPage = ({ currentUser }) => {
             </div>
             <button onClick={handleCreatePlan}>Create</button>
             <button onClick={handleClosePlanModal}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showTaskModal && (
+        <div className="modal-overlay" onClick={handleCloseTaskModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+            <div className="task-modal-container">
+              <div className="task-creation-section">
+                <h2>Create Task</h2>
+                {error && <div className="error-box">{error}</div>}
+                <div className="form-group">
+                  <label>Creator:</label>
+                  <input type="text" value={taskData.Task_creator} readOnly />
+
+                  <label>Creation Date:</label>
+                  <input type="text" value={taskData.Task_createDate} readOnly />
+
+                  <label>Status:</label>
+                  <input type="text" value={taskData.Task_status} readOnly />
+
+                  <label>Task Name:</label>
+                  <input type="text" name="Task_name" value={taskData.Task_name} onChange={handleTaskChange} />
+
+                  <label>Task Owner:</label>
+                  <input type="text" value={taskData.Task_owner} readOnly />
+
+                  <label>Description:</label>
+                  <textarea name="Task_description" value={taskData.Task_description} onChange={handleTaskChange} />
+
+                  <label>Plan Name:</label>
+                  <select name="Task_plan" value={taskData.Task_plan} onChange={handlePlanSelection}>
+                    <option value="">Select Plan</option>
+                    {plans.map(plan => (
+                      <option key={plan.Plan_MVP_name} value={plan.Plan_MVP_name}>
+                        {plan.Plan_MVP_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label>Plan Start Date:</label>
+                  <input type="text" value={taskData.Task_planStartDate} readOnly />
+
+                  <label>Plan End Date:</label>
+                  <input type="text" value={taskData.Task_planEndDate} readOnly />
+                </div>
+                <button onClick={handleCreateTask}>Create</button>
+                <button onClick={handleCloseTaskModal}>Cancel</button>
+              </div>
+
+              <div className="task-logs-section">
+                <h3>Logs</h3>
+                <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
