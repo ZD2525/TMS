@@ -96,69 +96,66 @@ exports.getPlans = async (req, res) => {
   }
 }
 
+const convertToMySQLDate = dateString => {
+  // Convert a date string in MM/DD/YYYY format to YYYY-MM-DD
+  const [month, day, year] = dateString.split("/")
+  return `${year}-${month}-${day}`
+}
+
+// Controller for creating a task (PL)
 exports.createTask = async (req, res) => {
   const {
     Task_plan,
-    Task_app_Acronym,
     Task_name,
-    Task_description = "", // Default to empty string if not provided
-    Task_notes = "", // Default to empty string if not provided
+    Task_description = "", // Provide default value
     Task_creator,
     Task_owner,
-    Task_createDate
+    Task_createDate,
+    App_Acronym
   } = req.body
 
-  // Set the default state to OPEN (0) for new tasks
-  const Task_state = 0 // OPEN state
+  const Task_app_Acronym = App_Acronym
 
-  console.log("Received request:", req.body)
-
-  if (!Task_app_Acronym || !Task_id || !Task_name || !Task_creator || !Task_owner || !Task_createDate) {
+  // Check for required fields
+  if (!Task_app_Acronym || !Task_name || !Task_creator || !Task_owner || !Task_createDate) {
     return res.status(400).send("Required fields are missing.")
   }
 
-  // Generate Task_id with Task_Rnumber logic
-  let Task_id = ""
   try {
-    // Fetch the current highest Task_Rnumber for the given app acronym
-    const queryMaxTaskNumber = `
-      SELECT MAX(CAST(SUBSTRING_INDEX(Task_id, '_', -1) AS UNSIGNED)) AS maxTaskNumber 
-      FROM Task 
-      WHERE Task_app_Acronym = ?
+    // Step 1: Query to count existing tasks for the given Task_app_Acronym
+    const countQuery = `SELECT COUNT(*) AS taskCount FROM Task WHERE Task_app_Acronym = ?`
+    const [rows] = await db.query(countQuery, [Task_app_Acronym])
+    const taskCount = rows[0].taskCount || 0
+
+    // Step 2: Increment the count to generate Task_Rnumber
+    const Task_Rnumber = taskCount + 1
+
+    // Step 3: Generate Task_id in the required format
+    const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
+
+    // Convert Task_createDate to MySQL format
+    const formattedCreateDate = convertToMySQLDate(Task_createDate)
+
+    // Map task state to an integer value (default is 'Open')
+    const mappedTaskState = mapTaskState("Open")
+    if (mappedTaskState === null) {
+      return res.status(400).send("Invalid Task_state provided.")
+    }
+
+    // SQL query for inserting the task
+    const query = `
+      INSERT INTO Task 
+      (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
-    const [result] = await db.query(queryMaxTaskNumber, [Task_app_Acronym])
-    const maxTaskNumber = result[0].maxTaskNumber || 0
-    const newTaskNumber = maxTaskNumber + 1
+    const values = [Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, "", mappedTaskState, Task_creator, Task_owner, formattedCreateDate]
 
-    // Generate the new Task_id
-    Task_id = `${Task_app_Acronym}_${newTaskNumber}`
-  } catch (error) {
-    console.error("Error generating Task_id:", error)
-    return res.status(500).send("Error generating Task_id.")
-  }
+    // Insert task into database
+    await db.query(query, values)
 
-  // Insert new task into the database
-  const insertTaskQuery = `
-    INSERT INTO Task 
-    (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `
-  const values = [
-    Task_id,
-    Task_plan,
-    Task_app_Acronym,
-    Task_name,
-    Task_description,
-    Task_notes,
-    Task_state, // Default state to OPEN (0)
-    Task_creator,
-    Task_owner,
-    Task_createDate
-  ]
+    // Log the task creation for confirmation
+    console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=${mappedTaskState}, Created by=${Task_creator}, Date=${formattedCreateDate}`)
 
-  try {
-    await db.query(insertTaskQuery, values)
-    console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=OPEN, Created by=${Task_creator}, Date=${Task_createDate}`)
     res.status(201).send("Task created successfully.")
   } catch (error) {
     console.error("Error creating task:", error)
