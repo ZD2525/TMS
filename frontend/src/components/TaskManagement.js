@@ -1,28 +1,31 @@
 import React, { useState, useEffect } from "react"
 import axios from "axios"
+import Modal from "react-modal"
 import "../assets/styles/TaskManagement.css"
-import { useNavigate } from "react-router-dom" // Assuming you are using react-router for navigation
+import { useNavigate } from "react-router-dom"
+
+Modal.setAppElement("#app") // Ensure this matches the root element ID of your app
 
 const TaskManagementSystem = () => {
   const [applications, setApplications] = useState([])
   const [userRole, setUserRole] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editMode, setEditMode] = useState(false) // State to track edit mode
+  const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({
     App_Acronym: "",
-    App_Rnumber: "", // Ensure this matches the backend column name
+    App_Rnumber: "",
     App_Description: "",
     App_startDate: "",
     App_endDate: "",
     App_permit_Open: "",
-    App_permit_toDoList: "", // Match backend naming
+    App_permit_toDoList: "",
     App_permit_Doing: "",
     App_permit_Done: "",
     App_permit_Create: ""
   })
-  const [userGroups, setUserGroups] = useState([]) // State to hold user groups
+  const [userGroups, setUserGroups] = useState([])
   const [error, setError] = useState("")
-  const navigate = useNavigate() // To handle navigation
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -48,7 +51,6 @@ const TaskManagementSystem = () => {
     const fetchUserGroups = async () => {
       try {
         const response = await axios.get("http://localhost:3000/groups")
-        console.log("Fetched User Groups:", response.data)
         setUserGroups(response.data)
       } catch (error) {
         console.error("Error fetching user groups:", error)
@@ -63,22 +65,20 @@ const TaskManagementSystem = () => {
 
   const handleCreateApplication = () => {
     setShowCreateModal(true)
-    setEditMode(false) // Set to create mode
+    setEditMode(false)
   }
 
   const handleEditApplication = app => {
-    console.log("Application data being edited:", app)
-
     const formatDate = date => (date ? new Date(date).toISOString().split("T")[0] : "")
 
     setFormData({
       App_Acronym: app.App_Acronym,
-      App_Rnumber: app.App_Rnumber ? app.App_Rnumber.toString() : "", // Ensure consistent naming and conversion
+      App_Rnumber: app.App_Rnumber ? app.App_Rnumber.toString() : "",
       App_Description: app.App_Description,
       App_startDate: formatDate(app.App_startDate),
       App_endDate: formatDate(app.App_endDate),
       App_permit_Open: app.App_permit_Open,
-      App_permit_toDoList: app.App_permit_toDoList, // Match backend field naming
+      App_permit_toDoList: app.App_permit_toDoList,
       App_permit_Doing: app.App_permit_Doing,
       App_permit_Done: app.App_permit_Done,
       App_permit_Create: app.App_permit_Create
@@ -91,12 +91,12 @@ const TaskManagementSystem = () => {
     setShowCreateModal(false)
     setFormData({
       App_Acronym: "",
-      App_Rnumber: "", // Ensure consistency here
+      App_Rnumber: "",
       App_Description: "",
       App_startDate: "",
       App_endDate: "",
       App_permit_Open: "",
-      App_permit_toDoList: "", // Match the consistent naming
+      App_permit_toDoList: "",
       App_permit_Doing: "",
       App_permit_Done: "",
       App_permit_Create: ""
@@ -110,13 +110,10 @@ const TaskManagementSystem = () => {
   }
 
   const handleSubmit = async () => {
-    console.log("Form data being submitted:", formData) // Add this line
     try {
       if (editMode) {
-        // Edit mode: update application
         await axios.put("http://localhost:3000/update-application", formData)
       } else {
-        // Create mode: create application
         await axios.post("http://localhost:3000/create-application", formData)
       }
       handleCloseModal()
@@ -128,7 +125,7 @@ const TaskManagementSystem = () => {
   }
 
   const handleViewApplication = app => {
-    navigate("/app", { state: { appAcronym: app.App_Acronym } }) // Pass App_Acronym as state
+    navigate("/app", { state: { appAcronym: app.App_Acronym } })
   }
 
   return (
@@ -157,34 +154,14 @@ const TaskManagementSystem = () => {
                 <button
                   className="edit-button"
                   onClick={e => {
-                    e.stopPropagation() // Prevent card click when editing
+                    e.stopPropagation()
                     handleEditApplication(app)
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: "5px",
-                    right: "5px",
-                    cursor: "pointer",
-                    backgroundColor: "transparent",
-                    border: "none",
-                    fontSize: "16px"
                   }}
                 >
                   ✏️
                 </button>
               )}
-              <span
-                className="view-application"
-                onClick={() => handleViewApplication(app)}
-                style={{
-                  display: "block",
-                  marginTop: "10px",
-                  color: "#007bff",
-                  cursor: "pointer",
-                  textAlign: "center",
-                  textDecoration: "underline"
-                }}
-              >
+              <span className="view-application" onClick={() => handleViewApplication(app)} style={{ display: "block", marginTop: "10px", cursor: "pointer", textAlign: "center" }}>
                 View
               </span>
             </div>
@@ -194,99 +171,95 @@ const TaskManagementSystem = () => {
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>{editMode ? "Edit App" : "Create App"}</h2>
-            {error && <div className="error-box">{error}</div>}
-            <div className="form-group">
-              <label>
-                Name:
-                <input type="text" name="App_Acronym" value={formData.App_Acronym} onChange={handleChange} />
-              </label>
-              <label>
-                RNumber:
-                <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
-              </label>
-            </div>
-            <div className="form-group">
-              <label>
-                Description:
-                <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} rows="4" />
-              </label>
-            </div>
-            <div className="form-group">
-              <label>
-                Start Date:
-                <input type="date" name="App_startDate" value={formData.App_startDate} onChange={handleChange} />
-              </label>
-              <label>
-                End Date:
-                <input type="date" name="App_endDate" value={formData.App_endDate} onChange={handleChange} />
-              </label>
-            </div>
-            <div className="form-group">
-              <label>
-                Permit Open:
-                <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
-                  <option value="">Select Group</option>
-                  {userGroups.map((group, index) => (
-                    <option key={index} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Permit Todo:
-                <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
-                  <option value="">Select Group</option>
-                  {userGroups.map((group, index) => (
-                    <option key={index} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Permit Doing:
-                <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
-                  <option value="">Select Group</option>
-                  {userGroups.map((group, index) => (
-                    <option key={index} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Permit Done:
-                <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
-                  <option value="">Select Group</option>
-                  {userGroups.map((group, index) => (
-                    <option key={index} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Permit Create:
-                <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
-                  <option value="">Select Group</option>
-                  {userGroups.map((group, index) => (
-                    <option key={index} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <button onClick={handleSubmit}>{editMode ? "Update" : "Create"}</button>
-            <button onClick={handleCloseModal}>Cancel</button>
-          </div>
+      <Modal isOpen={showCreateModal} onRequestClose={handleCloseModal} contentLabel={editMode ? "Edit Application Modal" : "Create Application Modal"} className="app-modal-content" overlayClassName="app-modal-overlay">
+        <h2>{editMode ? "Edit App" : "Create App"}</h2>
+        {error && <div className="error-box">{error}</div>}
+        <div className="form-group">
+          <label>
+            Name:
+            <input type="text" name="App_Acronym" value={formData.App_Acronym} onChange={handleChange} />
+          </label>
+          <label>
+            RNumber:
+            <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
+          </label>
         </div>
-      )}
+        <div className="form-group">
+          <label>
+            Description:
+            <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} rows="4" />
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            Start Date:
+            <input type="date" name="App_startDate" value={formData.App_startDate} onChange={handleChange} />
+          </label>
+          <label>
+            End Date:
+            <input type="date" name="App_endDate" value={formData.App_endDate} onChange={handleChange} />
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            Permit Open:
+            <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Permit Todo:
+            <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Permit Doing:
+            <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Permit Done:
+            <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Permit Create:
+            <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <button onClick={handleSubmit}>{editMode ? "Update" : "Create"}</button>
+        <button onClick={handleCloseModal}>Cancel</button>
+      </Modal>
     </div>
   )
 }

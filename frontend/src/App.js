@@ -86,7 +86,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={fetchUserProfile} />} />
           <Route path="/taskmanagementsystem" element={<TaskManagementSystem />} />
-          <Route path="/app" element={<AppPage />} />
+          <Route path="/app" element={<AppPage currentUser={{ username }} />} />
           <Route path="/usermanagement" element={isAuthenticated && isAdmin ? <UserManagementSystem handleLogout={handleLogout} username={username} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setIsAuthenticated={setIsAuthenticated} /> : <Navigate to={isAuthenticated ? "/taskmanagementsystem" : "/login"} />} />
           <Route path="/editprofile" element={<EditProfile setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="*" element={<NotFound />} />

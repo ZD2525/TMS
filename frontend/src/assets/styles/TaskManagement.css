@@ -1,3 +1,4 @@
+/* General Task Management System styling */
 .task-management-system {
   padding: 20px;
 }
@@ -38,7 +39,8 @@
   margin: 5px 0;
 }
 
-.modal-overlay {
+/* App Creation Modal */
+.app-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -48,17 +50,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Ensure this is higher than your header's z-index */
+  z-index: 1000;
 }
 
-.modal-content {
+.app-modal-content {
   background: white;
   padding: 20px;
   border-radius: 5px;
-  width: 800px;
-  max-width: 100%;
-  max-height: 90vh; /* Restricts modal height to 80% of the viewport height */
-  overflow-y: auto; /* Adds scroll behavior if content exceeds the height */
+  width: 600px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .form-group {
@@ -70,37 +72,21 @@
   margin-bottom: 5px;
 }
 
-.edit-button {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font-size: 16px;
-}
-
 .form-group input,
 .form-group textarea,
 .form-group select {
-  width: 95%; /* Slightly reduce width to fit better */
-  padding: 5px; /* Reduce padding for a more compact look */
+  width: 100%;
+  padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
-  font-size: 15px; /* Slightly reduce font size */
-  margin-bottom: 5px; /* Add some space between inputs */
-}
-
-.form-group textarea {
-  height: 50px; /* Reduce height of text area */
-  resize: vertical; /* Allow user to expand text area vertically */
+  margin-bottom: 5px;
 }
 
 button {
   margin-top: 10px;
-  padding: 12px 20px;
-  font-size: 16px;
+  padding: 10px 15px;
+  font-size: 14px;
   cursor: pointer;
   border: none;
   border-radius: 4px;

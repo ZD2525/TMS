@@ -3,17 +3,17 @@ const mapTaskState = require("../utils/mapTaskState")
 
 // Create an Application (Project Lead)
 exports.createApplication = async (req, res) => {
-  const { App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+  const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
 
   // Log the request body for debugging
   console.log("Received data:", req.body)
 
   const query = `
     INSERT INTO APPLICATION 
-    (App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
+    (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-  const values = [App_Acronym, App_Description, App_RNumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create]
+  const values = [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create]
 
   try {
     await db.query(query, values)
@@ -361,7 +361,6 @@ exports.closeTask = async (req, res) => {
   }
 }
 
-// Retrieve tasks related to a specific application (All Roles)
 exports.getTasks = async (req, res) => {
   const { App_Acronym } = req.body // Using App_Acronym from the request body
 
@@ -378,6 +377,10 @@ exports.getTasks = async (req, res) => {
   try {
     // Fetch tasks related to the app acronym
     const [tasksArray] = await db.execute(tasksQuery, [App_Acronym])
+    if (!Array.isArray(tasksArray)) {
+      console.warn("Expected an array from tasks query but received:", tasksArray)
+      return res.json([]) // Return an empty array if tasksArray is not valid
+    }
     console.log("Fetched tasks from database:", tasksArray)
 
     // Fetch plans related to the app acronym
@@ -403,15 +406,14 @@ exports.getTasks = async (req, res) => {
     tasksArray.forEach(task => {
       console.log("Task object structure:", task) // Log the full task object
       const stateKey = mapTaskState(task.Task_state) // Convert integer to string key using mapTaskState
-      console.log(`Mapped state for task ${task.Task_id}:`, stateKey)
       if (!stateKey || !tasks[stateKey]) {
         console.warn(`Unexpected or missing task state for task ${task.Task_id}:`, task.Task_state)
       } else {
         tasks[stateKey].push({
           id: task.Task_id,
           name: task.Task_name,
-          description: task.Task_description, // Added task description for display
-          colour: plans[task.Task_plan] || "", // Use color from plan mapping if available
+          description: task.Task_description,
+          colour: plans[task.Task_plan] || "",
           owner: task.Task_owner
         })
         console.log(`Task added to state ${stateKey}:`, {
