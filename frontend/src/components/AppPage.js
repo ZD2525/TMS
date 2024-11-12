@@ -7,7 +7,7 @@ const AppPage = ({ currentUser }) => {
   const [tasks, setTasks] = useState([])
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
-  const [plans, setPlans] = useState([]) // Add state for plans
+  const [plans, setPlans] = useState([])
   const [planData, setPlanData] = useState({
     Plan_MVP_name: "",
     Plan_startDate: "",
@@ -17,7 +17,7 @@ const AppPage = ({ currentUser }) => {
   const [taskData, setTaskData] = useState({
     Task_creator: currentUser.username,
     Task_createDate: new Date().toLocaleDateString(),
-    Task_status: "OPEN", // Display value for UI; actual state will be 0 (OPEN) in the backend
+    Task_status: "OPEN",
     Task_name: "",
     Task_owner: currentUser.username,
     Task_description: "",
@@ -31,20 +31,22 @@ const AppPage = ({ currentUser }) => {
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!appAcronym) {
-        setError("No application selected.")
-        return
-      }
-      try {
-        const response = await axios.post("http://localhost:3000/tasks", { App_Acronym: appAcronym })
-        setTasks(response.data)
-      } catch (error) {
-        console.error("Error fetching tasks:", error)
-      }
+  // Fetch tasks function (defined outside useEffect)
+  const fetchTasks = async () => {
+    if (!appAcronym) {
+      setError("No application selected.")
+      return
     }
+    try {
+      const response = await axios.post("http://localhost:3000/tasks", { App_Acronym: appAcronym })
+      setTasks(response.data)
+    } catch (error) {
+      console.error("Error fetching tasks:", error)
+    }
+  }
 
+  useEffect(() => {
+    fetchTasks() // Call fetchTasks on component mount
     const fetchPlans = async () => {
       try {
         const response = await axios.get("http://localhost:3000/plans")
@@ -53,8 +55,6 @@ const AppPage = ({ currentUser }) => {
         console.error("Error fetching plans:", error)
       }
     }
-
-    fetchTasks()
     fetchPlans()
   }, [appAcronym])
 
@@ -108,7 +108,7 @@ const AppPage = ({ currentUser }) => {
     const selectedPlan = plans.find(plan => plan.Plan_MVP_name === e.target.value)
     setTaskData(prevData => ({
       ...prevData,
-      Task_plan: selectedPlan ? selectedPlan.Plan_MVP_name : "", // Set to empty if no plan selected
+      Task_plan: selectedPlan ? selectedPlan.Plan_MVP_name : "",
       Task_planStartDate: selectedPlan?.Plan_startDate ? new Date(selectedPlan.Plan_startDate).toISOString().split("T")[0] : "",
       Task_planEndDate: selectedPlan?.Plan_endDate ? new Date(selectedPlan.Plan_endDate).toISOString().split("T")[0] : ""
     }))
@@ -135,7 +135,7 @@ const AppPage = ({ currentUser }) => {
         setLogs(prevLogs => [response.data.log, ...prevLogs])
       }
       handleCloseTaskModal() // Close the modal after successful creation
-      fetchTasks() // Refresh the task list to show the new task
+      await fetchTasks() // Refresh the task list to show the new task
     } catch (err) {
       setError(err.response?.data?.error || "An unexpected error occurred.")
     }
@@ -143,7 +143,7 @@ const AppPage = ({ currentUser }) => {
 
   return (
     <div className="app-page">
-      <h1>Task Board for {appAcronym || "Application"}</h1>
+      <h1>{appAcronym}</h1>
       <button onClick={handleOpenPlanModal} className="create-plan-button">
         Create Plan
       </button>
