@@ -86,13 +86,28 @@ exports.createPlan = async (req, res) => {
 
 // Get Plans (All Roles)
 exports.getPlans = async (req, res) => {
-  const query = `SELECT * FROM Plan`
+  const { appAcronym } = req.body // Ensure that the appAcronym is being passed in the request
+
+  if (!appAcronym) {
+    return res.status(400).send("App Acronym is required.")
+  }
 
   try {
-    const [results] = await db.query(query)
-    res.status(200).json(results)
+    const query = `
+      SELECT * 
+      FROM Plan
+      WHERE Plan_app_Acronym = ?
+    `
+    const [plans] = await db.execute(query, [appAcronym])
+
+    if (!plans.length) {
+      return res.status(404).send("No plans found for the specified app.")
+    }
+
+    res.json(plans)
   } catch (error) {
-    res.status(500).send("Error retrieving plans.")
+    console.error("Error fetching plans:", error)
+    res.status(500).send("Server error, please try again later.")
   }
 }
 

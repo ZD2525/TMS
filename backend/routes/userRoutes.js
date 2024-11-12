@@ -30,7 +30,7 @@ router.get("/applications", verifyToken, taskController.getApplications) // No g
 
 // Plan routes (Project Manager access required)
 router.post("/create-plan", verifyToken, CheckGroup("PM"), taskController.createPlan)
-router.get("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
+router.post("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
 
 // Task Routes
 router.post("/create-task", verifyToken, CheckGroup("PL"), appendTaskNotes, taskController.createTask) // Project Lead

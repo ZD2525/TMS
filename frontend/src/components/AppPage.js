@@ -47,16 +47,22 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
+  const fetchPlans = async () => {
+    if (!appAcronym) {
+      setError("No application selected.")
+      return
+    }
+
+    try {
+      const response = await axios.post("http://localhost:3000/plans", { appAcronym })
+      setPlans(response.data)
+    } catch (error) {
+      console.error("Error fetching plans:", error)
+    }
+  }
+
   useEffect(() => {
     fetchTasks() // Call fetchTasks on component mount
-    const fetchPlans = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/plans")
-        setPlans(response.data)
-      } catch (error) {
-        console.error("Error fetching plans:", error)
-      }
-    }
     fetchPlans()
   }, [appAcronym])
 
@@ -141,6 +147,7 @@ const AppPage = ({ currentUser }) => {
     try {
       await axios.post("http://localhost:3000/create-plan", { ...planData, Plan_app_Acronym: appAcronym })
       handleClosePlanModal()
+      fetchPlans() // Refresh the list of plans
     } catch (err) {
       setError(err.response?.data?.error || "An unexpected error occurred.")
     }
@@ -171,7 +178,7 @@ const AppPage = ({ currentUser }) => {
 
   return (
     <div className="app-page">
-      <h1>{appAcronym}</h1>
+      <h3>{appAcronym}</h3>
       <button onClick={handleOpenPlanModal} className="create-plan-button">
         Create Plan
       </button>
