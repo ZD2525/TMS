@@ -63,33 +63,55 @@ const CheckGroup = groupname => async (req, res, next) => {
 const CheckTaskStatePermission = async (req, res, next) => {
   try {
     // Fetch the task's current state and associated application acronym
-    const [[{ task_state, task_app_acronym }]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ? AND task_app_acronym = ?", [req.body.Task_id, req.body.App_Acronym])
+    const [[taskData]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ? AND task_app_acronym = ?", [req.body.Task_id, req.body.App_Acronym])
 
-    console.log("Retrieved values from the database:", { task_state, task_app_acronym })
+    console.log("Retrieved values from the database:", taskData)
 
-    if (task_state === undefined || !task_app_acronym) {
+    if (!taskData || taskData.task_state === undefined || !taskData.task_app_acronym) {
       console.error("Task state or App Acronym not found")
       return res.status(404).send("Task not found")
     }
 
     // Log retrieved values for debugging
+    const { task_state, task_app_acronym } = taskData
     console.log("Retrieved task state:", task_state)
     console.log("Task's App_Acronym:", task_app_acronym)
 
     // Fetch the permissions for the application with the correct column names
-    const [[{ App_permit_Create: create, App_permit_Open: open, App_permit_toDoList: todo, App_permit_Doing: doing, App_permit_Done: done }]] = await db.execute("SELECT App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done FROM application WHERE App_Acronym = ?", [task_app_acronym])
+    const [[permissionsData]] = await db.execute("SELECT App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done FROM application WHERE App_Acronym = ?", [task_app_acronym])
+
+    if (!permissionsData) {
+      console.error("No permissions found for the given App_Acronym")
+      return res.status(404).send("Application permissions not found")
+    }
 
     // Log retrieved permissions for debugging
+    const { App_permit_Create: create, App_permit_Open: open, App_permit_toDoList: todo, App_permit_Doing: doing, App_permit_Done: done } = permissionsData
     console.log("Retrieved permissions:", { create, open, todo, doing, done })
 
+    // Create a mapping for permissions based on state
     const permissions = { create, open, todo, doing, done }
-    if (!permissions[task_state]) {
+
+    // Define the state mapping based on task_state
+    const stateMapping = {
+      0: "open",
+      1: "todo",
+      2: "doing",
+      3: "done",
+      4: "closed"
+    }
+    const stateKey = stateMapping[task_state]
+
+    // Check if the stateKey is valid and exists in the permissions
+    console.log("State key for task state:", stateKey)
+    if (!stateKey || !permissions[stateKey]) {
       console.error("Invalid or missing permission for task state")
       return res.status(403).send("Permission denied for the current task state.")
     }
 
     // Check the user's group permission for the task state
-    CheckGroup(permissions[task_state])(req, res, next)
+    console.log("Required permission group for state:", permissions[stateKey])
+    CheckGroup(permissions[stateKey])(req, res, next)
   } catch (error) {
     console.error("Error in CheckTaskStatePermission:", error)
     return res.status(500).send("Server error, try again later.")

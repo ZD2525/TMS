@@ -27,16 +27,23 @@ exports.createApplication = async (req, res) => {
 // Update an Application (Project Lead)
 exports.updateApplication = async (req, res) => {
   const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+
+  console.log("Update request received with data:", req.body)
+
   const query = `
     UPDATE APPLICATION 
     SET App_Description = ?, App_Rnumber = ?, App_startDate = ?, App_endDate = ?, App_permit_Open = ?, App_permit_toDoList = ?, App_permit_Doing = ?, App_permit_Done = ?, App_permit_Create = ? 
     WHERE App_Acronym = ?`
   const values = [App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create, App_Acronym]
 
+  console.log("Query to be executed:", query)
+  console.log("Values:", values)
+
   try {
     await db.query(query, values)
     res.status(200).send("Application updated successfully.")
   } catch (error) {
+    console.error("Error during application update:", error)
     res.status(500).send("Error updating application.")
   }
 }

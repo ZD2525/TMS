@@ -10,12 +10,12 @@ const TaskManagementSystem = () => {
   const [editMode, setEditMode] = useState(false) // State to track edit mode
   const [formData, setFormData] = useState({
     App_Acronym: "",
-    App_RNumber: "",
+    App_Rnumber: "", // Ensure this matches the backend column name
     App_Description: "",
     App_startDate: "",
     App_endDate: "",
     App_permit_Open: "",
-    App_permit_Todo: "",
+    App_permit_toDoList: "", // Match backend naming
     App_permit_Doing: "",
     App_permit_Done: "",
     App_permit_Create: ""
@@ -67,32 +67,36 @@ const TaskManagementSystem = () => {
   }
 
   const handleEditApplication = app => {
+    console.log("Application data being edited:", app)
+
+    const formatDate = date => (date ? new Date(date).toISOString().split("T")[0] : "")
+
     setFormData({
       App_Acronym: app.App_Acronym,
-      App_RNumber: app.App_RNumber,
+      App_Rnumber: app.App_Rnumber ? app.App_Rnumber.toString() : "", // Ensure consistent naming and conversion
       App_Description: app.App_Description,
-      App_startDate: app.App_startDate,
-      App_endDate: app.App_endDate,
+      App_startDate: formatDate(app.App_startDate),
+      App_endDate: formatDate(app.App_endDate),
       App_permit_Open: app.App_permit_Open,
-      App_permit_Todo: app.App_permit_Todo,
+      App_permit_toDoList: app.App_permit_toDoList, // Match backend field naming
       App_permit_Doing: app.App_permit_Doing,
       App_permit_Done: app.App_permit_Done,
       App_permit_Create: app.App_permit_Create
     })
     setShowCreateModal(true)
-    setEditMode(true) // Set to edit mode
+    setEditMode(true)
   }
 
   const handleCloseModal = () => {
     setShowCreateModal(false)
     setFormData({
       App_Acronym: "",
-      App_RNumber: "",
+      App_Rnumber: "", // Ensure consistency here
       App_Description: "",
       App_startDate: "",
       App_endDate: "",
       App_permit_Open: "",
-      App_permit_Todo: "",
+      App_permit_toDoList: "", // Match the consistent naming
       App_permit_Doing: "",
       App_permit_Done: "",
       App_permit_Create: ""
@@ -106,6 +110,7 @@ const TaskManagementSystem = () => {
   }
 
   const handleSubmit = async () => {
+    console.log("Form data being submitted:", formData) // Add this line
     try {
       if (editMode) {
         // Edit mode: update application
@@ -155,9 +160,17 @@ const TaskManagementSystem = () => {
                     e.stopPropagation() // Prevent card click when editing
                     handleEditApplication(app)
                   }}
-                  style={{ position: "absolute", top: "5px", right: "5px", cursor: "pointer" }}
+                  style={{
+                    position: "absolute",
+                    top: "5px",
+                    right: "5px",
+                    cursor: "pointer",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    fontSize: "16px"
+                  }}
                 >
-                  ✏️ Edit
+                  ✏️
                 </button>
               )}
               <span
@@ -193,7 +206,7 @@ const TaskManagementSystem = () => {
               </label>
               <label>
                 RNumber:
-                <input type="text" name="App_RNumber" value={formData.App_RNumber} onChange={handleChange} />
+                <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
               </label>
             </div>
             <div className="form-group">
@@ -226,7 +239,7 @@ const TaskManagementSystem = () => {
               </label>
               <label>
                 Permit Todo:
-                <select name="App_permit_Todo" value={formData.App_permit_Todo} onChange={handleChange}>
+                <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
                   <option value="">Select Group</option>
                   {userGroups.map((group, index) => (
                     <option key={index} value={group}>
