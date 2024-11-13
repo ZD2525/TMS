@@ -4,11 +4,11 @@ const taskStateMap = {
   Doing: 2,
   Done: 3,
   Closed: 4,
-  0: "open",
-  1: "todo",
-  2: "doing",
-  3: "done",
-  4: "closed"
+  0: "Open",
+  1: "Todo",
+  2: "Doing",
+  3: "Done",
+  4: "Closed"
 }
 
 function mapTaskState(state) {

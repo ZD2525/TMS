@@ -131,21 +131,41 @@ const appendTaskNotes = async (req, res, next) => {
   const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
   let notes = ""
   let state = " - "
+  let creator = "unknown" // Default value for task_creator
+  let owner = "unknown" // Default value for task_owner
 
   try {
     if (req.body.taskId) {
-      // Consider renaming 'id' to 'taskId' for clarity
-      const [[task]] = await db.execute("SELECT task_notes, task_state FROM task WHERE task_id = ?", [req.body.taskId])
+      // Adjust query to retrieve task_state, task_creator, and task_owner
+      const [[task]] = await db.execute("SELECT task_notes, task_state, task_creator, task_owner FROM task WHERE task_id = ?", [req.body.taskId])
+
+      // Log retrieved data for debugging
+      console.log("Retrieved Task Data:", task)
 
       if (task) {
         notes = task.task_notes || ""
-        // Optional: Map state if needed
+        // Optional: Map state if applicable
         state = typeof task.task_state === "number" ? mapTaskState(task.task_state) || task.task_state : task.task_state
+        creator = task.task_creator || "unknown"
+        owner = task.task_owner || "unknown"
+
+        // Log individual values
+        console.log("Task State:", state)
+        console.log("Task Creator:", creator)
+        console.log("Task Owner:", owner)
+        console.log("Existing Task Notes:", notes)
       }
+    } else {
+      console.log("No taskId provided in request body.")
     }
 
-    // Format the notes to be appended
-    req.body.notes = req.body.notes ? `*************\n\n[${req.username}, ${state}, ${timestamp} (UTC)]\n\n${req.body.notes}\n\n${notes}` : notes
+    // Construct the notes entry
+    const constructedNotes = req.body.notes ? `*************\n\n[${creator || owner}, ${state}, ${timestamp} (UTC)]\n\n${req.body.notes}\n\n${notes}` : notes
+
+    // Log the constructed notes before assignment
+    console.log("Constructed Notes Before Assignment:", constructedNotes)
+
+    req.body.notes = constructedNotes
   } catch (error) {
     console.error("Error stamping task notes:", error)
     return res.status(500).send("Server error, try again later")

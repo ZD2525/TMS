@@ -33,7 +33,7 @@ router.post("/create-plan", verifyToken, CheckGroup("PM"), taskController.create
 router.post("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
 
 // Task Routes
-router.post("/create-task", verifyToken, CheckGroup("PL"), appendTaskNotes, taskController.createTask) // Project Lead
+router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.createTask) // Project Lead
 router.put("/release-task", verifyToken, CheckGroup("PM"), CheckTaskStatePermission, appendTaskNotes, taskController.releaseTask) // Project Manager
 router.put("/assign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.assignTask) // Developer
 router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.unassignTask) // Developer

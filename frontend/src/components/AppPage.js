@@ -18,7 +18,7 @@ const AppPage = ({ currentUser }) => {
   const [taskData, setTaskData] = useState({
     Task_creator: currentUser.username,
     Task_createDate: new Date().toLocaleDateString(),
-    Task_status: "OPEN",
+    Task_state: "Open",
     Task_name: "",
     Task_owner: currentUser.username,
     Task_description: "",
@@ -40,7 +40,9 @@ const AppPage = ({ currentUser }) => {
       return
     }
     try {
-      const response = await axios.post("http://localhost:3000/tasks", { App_Acronym: appAcronym })
+      const response = await axios.post("http://localhost:3000/tasks", {
+        App_Acronym: appAcronym
+      })
       setTasks(response.data)
     } catch (error) {
       console.error("Error fetching tasks:", error)
@@ -54,7 +56,9 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/plans", { appAcronym })
+      const response = await axios.post("http://localhost:3000/plans", {
+        appAcronym
+      })
       setPlans(response.data)
     } catch (error) {
       console.error("Error fetching plans:", error)
@@ -76,7 +80,10 @@ const AppPage = ({ currentUser }) => {
 
   const handleOpenTaskViewModal = async task => {
     try {
-      const response = await axios.post("http://localhost:3000/task", { taskId: task.id })
+      const response = await axios.post("http://localhost:3000/task", {
+        taskId: task.id
+      })
+      console.log("Fetched Task Data for View:", response.data) // Add logging to see the fetched task data
       setSelectedTask(response.data)
       setShowTaskViewModal(true)
     } catch (error) {
@@ -101,7 +108,7 @@ const AppPage = ({ currentUser }) => {
     setTaskData({
       Task_creator: currentUser.username,
       Task_createDate: new Date().toLocaleDateString(),
-      Task_status: "OPEN",
+      Task_state: "Open",
       Task_name: "",
       Task_owner: currentUser.username,
       Task_description: "",
@@ -145,7 +152,10 @@ const AppPage = ({ currentUser }) => {
 
   const handleCreatePlan = async () => {
     try {
-      await axios.post("http://localhost:3000/create-plan", { ...planData, Plan_app_Acronym: appAcronym })
+      await axios.post("http://localhost:3000/create-plan", {
+        ...planData,
+        Plan_app_Acronym: appAcronym
+      })
       handleClosePlanModal()
       fetchPlans() // Refresh the list of plans
     } catch (err) {
@@ -160,7 +170,10 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/create-task", { ...taskData, App_Acronym: appAcronym })
+      const response = await axios.post("http://localhost:3000/create-task", {
+        ...taskData,
+        App_Acronym: appAcronym
+      })
       if (response.data && response.data.log) {
         setLogs(prevLogs => [response.data.log, ...prevLogs])
       }
@@ -250,7 +263,7 @@ const AppPage = ({ currentUser }) => {
                   <input type="text" value={taskData.Task_createDate} readOnly />
 
                   <label>Status:</label>
-                  <input type="text" value={taskData.Task_status} readOnly />
+                  <input type="text" value={taskData.Task_state} readOnly />
 
                   <label>Task Name:</label>
                   <input type="text" name="Task_name" value={taskData.Task_name} onChange={handleTaskChange} />
@@ -297,6 +310,7 @@ const AppPage = ({ currentUser }) => {
               <div className="task-creation-section">
                 <h2>View Task</h2>
                 <div className="form-group">
+                  {/* Existing fields */}
                   <label>Creator:</label>
                   <input type="text" value={selectedTask.Task_creator || ""} readOnly />
 
@@ -335,7 +349,7 @@ const AppPage = ({ currentUser }) => {
 
               <div className="task-logs-section">
                 <h3>Logs</h3>
-                <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
+                <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No notes available.</p>}</div>
               </div>
             </div>
           </div>
