@@ -1,7 +1,18 @@
 const db = require("../models/db")
 
 // Utility function for getting the current timestamp
-const getTimestamp = () => new Date().toISOString().slice(0, 19).replace("T", " ")
+const getTimestamp = () => {
+  // Create a new date object
+  const date = new Date()
+
+  // Convert to UTC+8 by adding 8 hours (8 * 60 * 60 * 1000 milliseconds)
+  const offsetMilliseconds = 8 * 60 * 60 * 1000
+  const adjustedDate = new Date(date.getTime() + offsetMilliseconds)
+
+  // Format the date to the desired string format
+  return adjustedDate.toISOString().slice(0, 19).replace("T", " ")
+}
+
 const convertToMySQLDate = dateString => {
   // Convert a date string in MM/DD/YYYY format to YYYY-MM-DD
   const [month, day, year] = dateString.split("/")
