@@ -10,6 +10,7 @@ const AppPage = ({ currentUser }) => {
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showTaskViewModal, setShowTaskViewModal] = useState(false)
   const [plans, setPlans] = useState([])
+  const [hasPlanChanged, setHasPlanChanged] = useState(false)
   const [planData, setPlanData] = useState({
     Plan_MVP_name: "",
     Plan_startDate: "",
@@ -208,9 +209,15 @@ const AppPage = ({ currentUser }) => {
 
   const handlePlanSelection = e => {
     const selectedPlan = plans.find(plan => plan.Plan_MVP_name === e.target.value)
+    const newPlanName = selectedPlan ? selectedPlan.Plan_MVP_name : ""
+
+    // Check if the plan has changed
+    setHasPlanChanged(selectedPlan && selectedPlan.Plan_MVP_name !== selectedTask.Task_plan)
+
+    // Update taskData to reflect the change
     setTaskData(prevData => ({
       ...prevData,
-      Task_plan: selectedPlan ? selectedPlan.Plan_MVP_name : "",
+      Task_plan: newPlanName,
       Task_planStartDate: selectedPlan?.Plan_startDate ? new Date(selectedPlan.Plan_startDate).toISOString().split("T")[0] : "",
       Task_planEndDate: selectedPlan?.Plan_endDate ? new Date(selectedPlan.Plan_endDate).toISOString().split("T")[0] : ""
     }))
@@ -329,9 +336,16 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      const response = await axios.put("http://localhost:3000/reject-task", {
+      const requestData = {
         Task_id: selectedTask.Task_id
-      })
+      }
+
+      // If the plan has changed, include the new plan in the request
+      if (hasPlanChanged) {
+        requestData.newPlan = taskData.Task_plan
+      }
+
+      const response = await axios.put("http://localhost:3000/reject-task", requestData)
       console.log("Task rejected successfully:", response.data)
       fetchTasks() // Refresh the tasks list to show updated state
       setShowTaskViewModal(false)
@@ -341,22 +355,31 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  const handleCloseTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id) {
-      setError("Task ID is missing.")
+  const handleSaveNotes = async () => {
+    if (!selectedTask || !selectedTask.Task_id || !taskData.newNote) {
+      setError("Task ID is missing or no note provided.")
       return
     }
 
     try {
-      const response = await axios.put("http://localhost:3000/close-task", {
-        Task_id: selectedTask.Task_id
+      const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+      const noteEntry = `
+  *************
+  ${taskData.newNote} [${currentUser.username}, ${selectedTask.Task_state}, ${timestamp}]
+  `
+
+      const response = await axios.put("http://localhost:3000/save-task-notes", {
+        Task_id: selectedTask.Task_id,
+        newNote: noteEntry
       })
-      console.log("Task closed successfully:", response.data)
-      fetchTasks() // Refresh the tasks list to show updated state
+
+      console.log("Notes saved successfully:", response.data)
+      // Refresh the task details and logs
+      fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
-      console.error("Error closing task:", error.response?.data || error.message)
-      setError("Unable to close task.")
+      console.error("Error saving notes:", error.response?.data || error.message)
+      setError("Unable to save notes.")
     }
   }
 
@@ -501,13 +524,31 @@ const AppPage = ({ currentUser }) => {
                   <textarea value={selectedTask.Task_description || ""} readOnly />
 
                   <label>Plan Name:</label>
-                  <input type="text" value={selectedTask.Task_plan || "No Plan"} readOnly />
+                  {selectedTask.Task_state === "Done" && hasGroupPermission ? (
+                    <select name="Task_plan" value={taskData.Task_plan} onChange={handlePlanSelection}>
+                      <option value="">Select Plan</option>
+                      {plans.map(plan => (
+                        <option key={plan.Plan_MVP_name} value={plan.Plan_MVP_name}>
+                          {plan.Plan_MVP_name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="text" value={selectedTask.Task_plan || "No Plan"} readOnly />
+                  )}
 
                   <label>Plan Start Date:</label>
                   <input type="text" value={selectedTask.Plan_startDate || ""} readOnly />
 
                   <label>Plan End Date:</label>
                   <input type="text" value={selectedTask.Plan_endDate || ""} readOnly />
+
+                  {/* New textarea for entering notes */}
+                  <div className="form-group">
+                    <label>Notes:</label>
+                    <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} />
+                    {taskPermissions.length > 0 && <button onClick={handleSaveNotes}>Save</button>}
+                  </div>
                 </div>
 
                 {/* Conditional rendering for buttons */}
@@ -528,11 +569,7 @@ const AppPage = ({ currentUser }) => {
                     {/* Check for Done state and group permission for approval */}
                     {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleApproveTask}>Approve</button>}
 
-                    {/* Check for Done state and group permission for rejection */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject</button>}
-
-                    {/* Check for Done state and group permission for closing */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleCloseTask}>Close</button>}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject {hasPlanChanged ? "with Plan Change" : ""}</button>}
 
                     {/* Default Save button if there are permissions */}
                     {taskPermissions.length > 0 && <button>Save</button>}

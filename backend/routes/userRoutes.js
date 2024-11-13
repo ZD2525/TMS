@@ -2,7 +2,7 @@ const express = require("express")
 const router = express.Router()
 const userController = require("../controllers/userController")
 const taskController = require("../controllers/taskController")
-const { verifyToken, CheckGroup, CheckTaskStatePermission, appendTaskNotes } = require("../middlewares/authMiddleware")
+const { verifyToken, CheckGroup, CheckTaskStatePermission } = require("../middlewares/authMiddleware")
 
 // Public Routes
 router.post("/login", userController.loginUser)
@@ -40,9 +40,9 @@ router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermi
 router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.reviewTask) // Developer
 router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.approveTask) // Project Lead
 router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.rejectTask) // Project Lead
-router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.closeTask) // Project Lead
 router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 router.post("/task", verifyToken, taskController.viewTask)
+router.put("/save-task-notes", taskController.saveTaskNotes)
 router.post("/check-permissions", verifyToken, CheckTaskStatePermission, (req, res) => {
   // Returning requiredGroup as an array
   res.json({ success: true, requiredGroup: Array.isArray(req.requiredGroup) ? req.requiredGroup : [req.requiredGroup] })

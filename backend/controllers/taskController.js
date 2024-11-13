@@ -1,17 +1,5 @@
 const db = require("../models/db")
-
-// Utility function for getting the current timestamp
-const getTimestamp = () => {
-  // Create a new date object
-  const date = new Date()
-
-  // Convert to UTC+8 by adding 8 hours (8 * 60 * 60 * 1000 milliseconds)
-  const offsetMilliseconds = 8 * 60 * 60 * 1000
-  const adjustedDate = new Date(date.getTime() + offsetMilliseconds)
-
-  // Format the date to the desired string format
-  return adjustedDate.toISOString().slice(0, 19).replace("T", " ")
-}
+const { getUTCPlus8Timestamp } = require("../utils/timestamp")
 
 const convertToMySQLDate = dateString => {
   // Convert a date string in MM/DD/YYYY format to YYYY-MM-DD
@@ -134,10 +122,12 @@ exports.createTask = async (req, res) => {
     const taskCount = rows[0].taskCount || 0
     const Task_Rnumber = taskCount + 1
     const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
-    const formattedCreateDate = convertToMySQLDate(Task_createDate)
-    const initialTaskState = "Open"
 
-    const timestamp = getTimestamp()
+    // Format the date to remove the time component (assuming Task_createDate is in a valid date string format)
+    const formattedCreateDate = new Date(Task_createDate).toISOString().split("T")[0]
+
+    const initialTaskState = "Open"
+    const timestamp = getUTCPlus8Timestamp()
     const formattedNote = `*************\nTASK CREATED [${Task_creator || "unknown"}, ${initialTaskState}, ${timestamp}]\n`
 
     const query = `
@@ -180,7 +170,7 @@ exports.releaseTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK RELEASED [${req.user?.username || "unknown"}, ${currentState} -> ${newState}, ${timestamp}]
@@ -226,7 +216,7 @@ exports.assignTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK ASSIGNED [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
@@ -268,7 +258,7 @@ exports.unassignTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK UNASSIGNED [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
@@ -310,7 +300,7 @@ exports.reviewTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK SENT FOR REVIEW [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
@@ -351,7 +341,7 @@ exports.approveTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK APPROVED AND CLOSED [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
@@ -379,34 +369,42 @@ ${existingTask.task_notes || ""}
 
 // Reject Task (Project Lead)
 exports.rejectTask = async (req, res) => {
-  const { Task_id } = req.body
+  const { Task_id, newPlan } = req.body // Accept newPlan as part of the request body
   const newState = "Doing"
   const currentState = "Done"
   const Task_owner = req.user?.username || "unknown"
 
   try {
-    // Retrieve existing task notes before updating
-    const [[existingTask]] = await db.execute("SELECT task_notes, task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
+    // Retrieve existing task notes and state before updating
+    const [[existingTask]] = await db.execute("SELECT task_notes, task_state, Task_plan FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
 
     if (!existingTask) {
       return res.status(404).send("Task not found or cannot be rejected.")
     }
 
+    // Check if a plan change is requested and update it
+    let planUpdateQuery = ""
+    let planUpdateValues = []
+    if (newPlan && newPlan !== existingTask.Task_plan) {
+      planUpdateQuery = ", Task_plan = ?"
+      planUpdateValues.push(newPlan)
+    }
+
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK REJECTED [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
-
 ${existingTask.task_notes || ""}
     `
 
-    // Update the task state and notes
+    // Update the task state, notes, and optionally the plan
     const query = `
       UPDATE Task 
-      SET Task_state = ?, task_notes = ? 
-      WHERE Task_id = ? AND Task_state = ?`
-    const [result] = await db.execute(query, [newState, newNotes, Task_id, currentState])
+      SET Task_state = ?, task_notes = ? ${planUpdateQuery}
+      WHERE Task_id = ? AND Task_state = ?
+    `
+    const [result] = await db.execute(query, [newState, newNotes, ...planUpdateValues, Task_id, currentState])
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or cannot be rejected.")
@@ -435,7 +433,7 @@ exports.closeTask = async (req, res) => {
     }
 
     // Append new notes
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
 TASK CLOSED [${Task_owner}, ${currentState} -> ${newState}, ${timestamp}]
@@ -488,6 +486,11 @@ exports.viewTask = async (req, res) => {
       return res.status(404).send("Task not found.")
     }
 
+    // Format the Task_createDate to only include the date part
+    if (task[0].Task_createDate) {
+      task[0].Task_createDate = new Date(task[0].Task_createDate).toISOString().split("T")[0]
+    }
+
     // Separate query to fetch plan details
     let planDetails = {}
     if (task[0].Task_plan) {
@@ -495,6 +498,14 @@ exports.viewTask = async (req, res) => {
       const [plan] = await db.execute(planQuery, [task[0].Task_plan])
       if (plan.length) {
         planDetails = plan[0]
+
+        // Format Plan_startDate and Plan_endDate to only include the date part
+        if (planDetails.Plan_startDate) {
+          planDetails.Plan_startDate = new Date(planDetails.Plan_startDate).toISOString().split("T")[0]
+        }
+        if (planDetails.Plan_endDate) {
+          planDetails.Plan_endDate = new Date(planDetails.Plan_endDate).toISOString().split("T")[0]
+        }
       }
     }
 
@@ -508,5 +519,38 @@ exports.viewTask = async (req, res) => {
   } catch (error) {
     console.error("Error fetching task:", error)
     res.status(500).send("Server error, please try again later.")
+  }
+}
+
+exports.saveTaskNotes = async (req, res) => {
+  const { Task_id, newNote } = req.body
+
+  if (!Task_id || !newNote) {
+    return res.status(400).send("Task ID and note are required.")
+  }
+
+  try {
+    // Retrieve existing task notes
+    const [[existingTask]] = await db.execute("SELECT task_notes FROM Task WHERE Task_id = ?", [Task_id])
+
+    if (!existingTask) {
+      return res.status(404).send("Task not found.")
+    }
+
+    // Append the new note
+    const updatedNotes = `${newNote}\n\n${existingTask.task_notes || ""}`
+
+    // Update the task notes in the database
+    const query = "UPDATE Task SET task_notes = ? WHERE Task_id = ?"
+    const [result] = await db.execute(query, [updatedNotes, Task_id])
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send("Task not found or unable to update notes.")
+    }
+
+    res.status(200).send("Task notes updated successfully.")
+  } catch (error) {
+    console.error("Error updating task notes:", error)
+    res.status(500).send("Server error, unable to update notes.")
   }
 }
