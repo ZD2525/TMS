@@ -107,53 +107,6 @@ exports.getPlans = async (req, res) => {
   }
 }
 
-// // Controller for creating a task (PL)
-// exports.createTask = async (req, res) => {
-//   const {
-//     Task_plan,
-//     Task_name,
-//     Task_description = "", // Provide default value
-//     Task_creator,
-//     Task_owner,
-//     Task_createDate,
-//     App_Acronym,
-//     notes // Ensure notes are captured
-//   } = req.body
-
-//   const Task_app_Acronym = App_Acronym
-
-//   // Check for required fields
-//   if (!Task_app_Acronym || !Task_name || !Task_creator || !Task_owner || !Task_createDate) {
-//     return res.status(400).send("Required fields are missing.")
-//   }
-
-//   try {
-//     // Generate unique Task ID and Task_Rnumber
-//     const countQuery = `SELECT COUNT(*) AS taskCount FROM Task WHERE Task_app_Acronym = ?`
-//     const [rows] = await db.query(countQuery, [Task_app_Acronym])
-//     const taskCount = rows[0].taskCount || 0
-//     const Task_Rnumber = taskCount + 1
-//     const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
-//     const formattedCreateDate = convertToMySQLDate(Task_createDate)
-//     const mappedTaskState = mapTaskState("Open")
-
-//     // Insert task with notes into database
-//     const query = `
-//       INSERT INTO Task
-//       (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate)
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-//     `
-//     const values = [Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, notes, mappedTaskState, Task_creator, Task_owner, formattedCreateDate]
-//     await db.query(query, values)
-
-//     console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=${mappedTaskState}, Created by=${Task_creator}, Date=${formattedCreateDate}`)
-//     res.status(201).send("Task created successfully.")
-//   } catch (error) {
-//     console.error("Error creating task:", error)
-//     res.status(500).send("Error creating task.")
-//   }
-// }
-
 // Create a new task (Project Lead)
 exports.createTask = async (req, res) => {
   const { Task_plan, Task_name, Task_description = "", Task_creator, Task_owner, Task_createDate, App_Acronym } = req.body
@@ -193,6 +146,7 @@ exports.createTask = async (req, res) => {
   }
 }
 
+// Release Task to To-Do (Project Manager)
 exports.releaseTask = async (req, res) => {
   const { Task_id, App_Acronym } = req.body
   const newState = "To-Do"
@@ -216,12 +170,13 @@ exports.releaseTask = async (req, res) => {
   }
 }
 
+// Assign Task to Developer (Developer)
 exports.assignTask = async (req, res) => {
   const { Task_id } = req.body
   const newState = "Doing"
   const currentState = "To-Do"
 
-  const Task_owner = req.user?.username || "unknown" // Ensure we have a Task_owner
+  const Task_owner = req.user?.username || "unknown"
 
   if (!Task_owner) {
     return res.status(401).send("User information missing. Cannot assign task.")
@@ -373,6 +328,7 @@ exports.getTasks = async (req, res) => {
   }
 }
 
+// View Task (All Roles)
 exports.viewTask = async (req, res) => {
   const { taskId } = req.body
 
@@ -384,7 +340,7 @@ exports.viewTask = async (req, res) => {
       return res.status(404).send("Task not found.")
     }
 
-    // Fetch Plan details separately if needed
+    // Separate query to fetch plan details
     let planDetails = {}
     if (task[0].Task_plan) {
       const planQuery = `SELECT Plan_startDate, Plan_endDate FROM Plan WHERE Plan_MVP_name = ?`
