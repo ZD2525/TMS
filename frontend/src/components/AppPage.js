@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom"
 
 const AppPage = ({ currentUser }) => {
   const [tasks, setTasks] = useState([])
+  const [taskPermissions, setTaskPermissions] = useState([])
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showTaskViewModal, setShowTaskViewModal] = useState(false)
@@ -29,6 +30,7 @@ const AppPage = ({ currentUser }) => {
   const [selectedTask, setSelectedTask] = useState(null)
   const [error, setError] = useState("")
   const [logs, setLogs] = useState([])
+  const [hasGroupPermission, setHasGroupPermission] = useState(false)
 
   const location = useLocation()
   const { appAcronym } = location.state || {}
@@ -47,7 +49,7 @@ const AppPage = ({ currentUser }) => {
       // Group tasks by their state
       const groupedTasks = response.data.reduce(
         (acc, task) => {
-          const stateKey = task.Task_state.toLowerCase() // Convert state to lowercase for consistency
+          const stateKey = task.Task_state.toLowerCase().replace(/-/g, "")
           if (!acc[stateKey]) acc[stateKey] = []
           acc[stateKey].push(task)
           return acc
@@ -77,10 +79,26 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
+  const checkUserGroupPermission = async requiredGroup => {
+    try {
+      console.log("Checking user permission for group:", requiredGroup)
+      const response = await axios.post("http://localhost:3000/checkgroup", { group: Array.isArray(requiredGroup) ? requiredGroup : [requiredGroup] })
+      return response.data.success || false
+    } catch (error) {
+      console.error("Error checking user group permission:", error.response?.data || error.message)
+      return false
+    }
+  }
+
   useEffect(() => {
     fetchTasks() // Call fetchTasks on component mount
     fetchPlans()
   }, [appAcronym])
+
+  useEffect(() => {
+    // Fetch currentUser data here if needed
+    console.log("Current User Data:", currentUser)
+  }, [currentUser])
 
   const handleOpenPlanModal = () => {
     setShowPlanModal(true)
@@ -96,16 +114,47 @@ const AppPage = ({ currentUser }) => {
       setError("Unable to open task view - task ID is missing.")
       return
     }
+
     try {
-      const response = await axios.post("http://localhost:3000/task", {
-        taskId: task.Task_id // Ensure Task_id is used instead of task.id
-      })
-      console.log("Fetched Task Data for View:", response.data)
+      const response = await axios.post("http://localhost:3000/task", { taskId: task.Task_id })
       setSelectedTask(response.data)
+
+      const permissionResponse = await axios.post("http://localhost:3000/check-permissions", {
+        Task_id: response.data.Task_id,
+        App_Acronym: response.data.Task_app_Acronym
+      })
+
+      if (permissionResponse.data && permissionResponse.data.success) {
+        console.log("Required Group from backend response:", permissionResponse.data.requiredGroup)
+        setTaskPermissions(permissionResponse.data.requiredGroup || [])
+        const hasPermission = await checkUserGroupPermission(permissionResponse.data.requiredGroup)
+        setHasGroupPermission(hasPermission)
+      } else {
+        console.warn("No permissions returned or success flag missing.")
+        setTaskPermissions([])
+        setHasGroupPermission(false)
+      }
+
       setShowTaskViewModal(true)
     } catch (error) {
-      console.error("Error fetching task details:", error)
-      setError("Unable to fetch task details.")
+      console.error("Error fetching task details or permissions:", error)
+      setError("Unable to fetch task details or permissions.")
+    }
+  }
+
+  // Function to handle assigning a task
+  const handleAssignTask = async () => {
+    try {
+      const response = await axios.put("http://localhost:3000/assign-task", {
+        Task_id: selectedTask.Task_id,
+        App_Acronym: selectedTask.Task_app_Acronym
+      })
+      console.log("Task assigned successfully:", response.data)
+      fetchTasks()
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error assigning task:", error)
+      setError("Unable to assign task.")
     }
   }
 
@@ -201,10 +250,46 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  const hasReleasePermission = () => {
-    // Example permission check logic, update based on your app logic
-    return currentUser.groups && currentUser.groups.includes("PM")
+  const handleReleaseTask = async () => {
+    try {
+      const response = await axios.put("http://localhost:3000/release-task", {
+        Task_id: selectedTask.Task_id,
+        App_Acronym: selectedTask.Task_app_Acronym
+      })
+      console.log("Task released successfully:", response.data)
+      fetchTasks()
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error releasing task:", error)
+      setError("Unable to release task.")
+    }
   }
+
+  // const hasPermissionToSave = () => {
+  //   if (!selectedTask || !selectedTask.Task_state) {
+  //     console.log("No selected task or task state undefined")
+  //     return false
+  //   }
+
+  //   console.log("Selected Task State:", selectedTask.Task_state)
+  //   console.log("User Groups:", currentUser.groups)
+
+  //   // Define your conditions for saving based on the task state
+  //   switch (selectedTask.Task_state) {
+  //     case "Open":
+  //       // Only "PM" group users can save when the task is in "Open" state
+  //       return currentUser.groups && currentUser.groups.includes("PM")
+  //     case "To-Do":
+  //       // Example condition for "To-Do" state
+  //       return currentUser.groups && currentUser.groups.includes("Developer")
+  //     case "Doing":
+  //       // Example condition for "Doing" state
+  //       return currentUser.groups && currentUser.groups.includes("QA")
+  //     default:
+  //       // Default case for states where saving is not allowed
+  //       return false
+  //   }
+  // }
 
   return (
     <div className="app-page">
@@ -355,13 +440,16 @@ const AppPage = ({ currentUser }) => {
                   <label>Plan End Date:</label>
                   <input type="text" value={selectedTask.Plan_endDate || ""} readOnly />
                 </div>
-                {hasReleasePermission() && (
+
+                {/* Conditional rendering for buttons */}
+                {selectedTask && (
                   <div>
-                    <button>Release</button>
-                    <button>Save</button>
+                    {selectedTask.Task_state === "To-Do" && hasGroupPermission && <button onClick={handleAssignTask}>Assign</button>}
+                    {selectedTask.Task_state === "Open" && hasGroupPermission && <button onClick={handleReleaseTask}>Release</button>}
+                    {taskPermissions.length > 0 && <button>Save</button>}
+                    <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
                   </div>
                 )}
-                <button onClick={handleCloseTaskViewModal}>Cancel</button>
               </div>
 
               <div className="task-logs-section">

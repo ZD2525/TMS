@@ -43,5 +43,9 @@ router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermissi
 router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.closeTask) // Project Lead
 router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 router.post("/task", verifyToken, taskController.viewTask)
+router.post("/check-permissions", verifyToken, CheckTaskStatePermission, (req, res) => {
+  // Returning requiredGroup as an array
+  res.json({ success: true, requiredGroup: Array.isArray(req.requiredGroup) ? req.requiredGroup : [req.requiredGroup] })
+})
 
 module.exports = router

@@ -157,12 +157,14 @@ exports.releaseTask = async (req, res) => {
   }
 
   try {
-    const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ? AND Task_app_Acronym = ?`
-    const [result] = await db.query(query, [newState, Task_id, currentState, App_Acronym])
+    // Update the state and notes
+    const query = `UPDATE task SET task_state = ?, task_notes = ? WHERE task_id = ? AND task_state = ? AND task_app_Acronym = ?`
+    const [result] = await db.execute(query, [newState, req.body.notes, Task_id, currentState, App_Acronym])
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found, already released, or App_Acronym does not match.")
     }
+
     res.status(200).send("Task released to To-Do.")
   } catch (error) {
     console.error("Error releasing task:", error)
