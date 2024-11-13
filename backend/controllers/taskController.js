@@ -217,22 +217,6 @@ exports.unassignTask = async (req, res) => {
   }
 }
 
-// // Start Task (Developer)
-// exports.startTask = async (req, res) => {
-//   const { Task_id } = req.body
-//   const newState = mapTaskState.Doing
-//   const currentState = mapTaskState("To-Do")
-
-//   const query = `UPDATE Task SET Task_state = ? WHERE Task_id = ? AND Task_state = ?`
-//   try {
-//     const [result] = await db.query(query, [newState, Task_id, currentState])
-//     if (result.affectedRows === 0) return res.status(404).send("Task not found or cannot be started.")
-//     res.status(200).send("Task started successfully.")
-//   } catch (error) {
-//     res.status(500).send("Error starting task.")
-//   }
-// }
-
 // Review Task (Developer)
 exports.reviewTask = async (req, res) => {
   const { Task_id } = req.body
