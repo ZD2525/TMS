@@ -91,11 +91,16 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleOpenTaskViewModal = async task => {
+    if (!task || !task.Task_id) {
+      console.error("Task ID is missing.")
+      setError("Unable to open task view - task ID is missing.")
+      return
+    }
     try {
       const response = await axios.post("http://localhost:3000/task", {
-        taskId: task.id
+        taskId: task.Task_id // Ensure Task_id is used instead of task.id
       })
-      console.log("Fetched Task Data for View:", response.data) // Add logging to see the fetched task data
+      console.log("Fetched Task Data for View:", response.data)
       setSelectedTask(response.data)
       setShowTaskViewModal(true)
     } catch (error) {
