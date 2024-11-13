@@ -542,13 +542,6 @@ const AppPage = ({ currentUser }) => {
 
                   <label>Plan End Date:</label>
                   <input type="text" value={selectedTask.Plan_endDate || ""} readOnly />
-
-                  {/* New textarea for entering notes */}
-                  <div className="form-group">
-                    <label>Notes:</label>
-                    <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} />
-                    {taskPermissions.length > 0 && <button onClick={handleSaveNotes}>Save</button>}
-                  </div>
                 </div>
 
                 {/* Conditional rendering for buttons */}
@@ -572,7 +565,7 @@ const AppPage = ({ currentUser }) => {
                     {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject {hasPlanChanged ? "with Plan Change" : ""}</button>}
 
                     {/* Default Save button if there are permissions */}
-                    {taskPermissions.length > 0 && <button>Save</button>}
+                    {taskPermissions.length > 0 && <button onClick={handleSaveNotes}>Save</button>}
 
                     {/* Cancel button */}
                     <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
@@ -583,6 +576,12 @@ const AppPage = ({ currentUser }) => {
               <div className="task-logs-section">
                 <h3>Logs</h3>
                 <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No notes available.</p>}</div>
+
+                {/* New textarea for entering notes */}
+                <div className="form-group">
+                  <label>Notes:</label>
+                  <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} />
+                </div>
               </div>
             </div>
           </div>
