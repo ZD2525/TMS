@@ -151,10 +151,26 @@ h3 {
   padding: 10px;
 }
 
+.task-notes-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Aligns content to the right */
+  margin-top: 10px;
+  width: 100%; /* Make it take the full available width */
+}
+
+.task-notes-container textarea {
+  width: 100%; /* Expand to the width of the parent container */
+  min-height: 80px; /* Adjust the height as needed */
+  resize: vertical; /* Allow vertical resizing if desired */
+  margin-bottom: 10px; /* Adds space between the textarea and the button */
+}
+
 .task-logs-section {
-  max-height: 400px;
-  overflow-y: auto;
-  border-left: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 }
 
 .form-group {

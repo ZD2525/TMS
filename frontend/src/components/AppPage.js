@@ -117,6 +117,9 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
+      // Reset hasPlanChanged when opening a new task
+      setHasPlanChanged(false)
+
       const response = await axios.post("http://localhost:3000/task", { taskId: task.Task_id })
       setSelectedTask(response.data)
 
@@ -190,6 +193,8 @@ const AppPage = ({ currentUser }) => {
   const handleCloseTaskViewModal = () => {
     setShowTaskViewModal(false)
     setSelectedTask(null)
+    // Clear the newNote input field when closing the modal
+    setTaskData(prevData => ({ ...prevData, newNote: "" }))
   }
 
   const handleChange = e => {
@@ -368,15 +373,20 @@ const AppPage = ({ currentUser }) => {
   ${taskData.newNote} [${currentUser.username}, ${selectedTask.Task_state}, ${timestamp}]
   `
 
-      const response = await axios.put("http://localhost:3000/save-task-notes", {
+      // Save the new note
+      await axios.put("http://localhost:3000/save-task-notes", {
         Task_id: selectedTask.Task_id,
         newNote: noteEntry
       })
 
-      console.log("Notes saved successfully:", response.data)
-      // Refresh the task details and logs
-      fetchTasks()
-      setShowTaskViewModal(false)
+      // Fetch updated task details and logs
+      const response = await axios.post("http://localhost:3000/task", {
+        taskId: selectedTask.Task_id
+      })
+      setSelectedTask(response.data)
+
+      // Clear the newNote input field after successful save
+      setTaskData(prevData => ({ ...prevData, newNote: "" }))
     } catch (error) {
       console.error("Error saving notes:", error.response?.data || error.message)
       setError("Unable to save notes.")
@@ -560,12 +570,12 @@ const AppPage = ({ currentUser }) => {
                     {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleReviewTask}>Review</button>}
 
                     {/* Check for Done state and group permission for approval */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleApproveTask}>Approve</button>}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && <button onClick={handleApproveTask}>Approve</button>}
 
                     {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject {hasPlanChanged ? "with Plan Change" : ""}</button>}
 
-                    {/* Default Save button if there are permissions */}
-                    {taskPermissions.length > 0 && <button onClick={handleSaveNotes}>Save</button>}
+                    {/* Only show the Save button if there is no plan change */}
+                    {taskPermissions.length > 0 && !hasPlanChanged && <button onClick={handleSaveNotes}>Save</button>}
 
                     {/* Cancel button */}
                     <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
@@ -575,12 +585,12 @@ const AppPage = ({ currentUser }) => {
 
               <div className="task-logs-section">
                 <h3>Logs</h3>
-                <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No notes available.</p>}</div>
+                <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No logs available.</p>}</div>
 
                 {/* New textarea for entering notes */}
-                <div className="form-group">
+                <div className="task-notes-container">
                   <label>Notes:</label>
-                  <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} />
+                  <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} placeholder="Add notes here..." />
                 </div>
               </div>
             </div>
