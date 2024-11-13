@@ -33,7 +33,6 @@ const AppPage = ({ currentUser }) => {
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
-  // Fetch tasks function
   const fetchTasks = async () => {
     if (!appAcronym) {
       setError("No application selected.")
@@ -43,7 +42,20 @@ const AppPage = ({ currentUser }) => {
       const response = await axios.post("http://localhost:3000/tasks", {
         App_Acronym: appAcronym
       })
-      setTasks(response.data)
+      console.log("Fetched tasks response:", response.data)
+
+      // Group tasks by their state
+      const groupedTasks = response.data.reduce(
+        (acc, task) => {
+          const stateKey = task.Task_state.toLowerCase() // Convert state to lowercase for consistency
+          if (!acc[stateKey]) acc[stateKey] = []
+          acc[stateKey].push(task)
+          return acc
+        },
+        { open: [], todo: [], doing: [], done: [], closed: [] }
+      )
+
+      setTasks(groupedTasks)
     } catch (error) {
       console.error("Error fetching tasks:", error)
     }
@@ -203,15 +215,15 @@ const AppPage = ({ currentUser }) => {
           <div key={state} className="task-column">
             <h2>{state.toUpperCase()}</h2>
             {(Array.isArray(tasks[state]) ? tasks[state] : []).map(task => (
-              <div key={task.id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
-                <h3>{task.id}</h3> {/* Display Task ID */}
-                <p>{task.description}</p> {/* Display Task Description */}
+              <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
+                <h3>{task.Task_id}</h3> {/* Display Task ID */}
+                <p>{task.Task_description || "No description provided."}</p> {/* Display Task Description */}
                 <div className="task-card-footer">
-                  <span className="plan-name" style={{ backgroundColor: task.colour }}>
-                    {task.planName || "No Plan"}
+                  <span className="plan-name" style={{ backgroundColor: task.Task_plan ? "#d3d3d3" : "" }}>
+                    {task.Task_plan || "No Plan"}
                   </span>{" "}
                   {/* Plan Name on bottom left */}
-                  <span className="task-owner">{task.owner}</span> {/* Owner on bottom right */}
+                  <span className="task-owner">{task.Task_owner}</span> {/* Owner on bottom right */}
                 </div>
               </div>
             ))}
