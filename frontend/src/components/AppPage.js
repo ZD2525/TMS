@@ -265,31 +265,100 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  // const hasPermissionToSave = () => {
-  //   if (!selectedTask || !selectedTask.Task_state) {
-  //     console.log("No selected task or task state undefined")
-  //     return false
-  //   }
+  const handleUnassignTask = async () => {
+    if (!selectedTask || !selectedTask.Task_id) {
+      setError("Task ID is missing.")
+      return
+    }
 
-  //   console.log("Selected Task State:", selectedTask.Task_state)
-  //   console.log("User Groups:", currentUser.groups)
+    try {
+      const response = await axios.put("http://localhost:3000/unassign-task", {
+        Task_id: selectedTask.Task_id
+      })
+      console.log("Task unassigned successfully:", response.data)
+      fetchTasks() // Refresh the tasks list to show updated state
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error unassigning task:", error.response?.data || error.message)
+      setError("Unable to unassign task.")
+    }
+  }
 
-  //   // Define your conditions for saving based on the task state
-  //   switch (selectedTask.Task_state) {
-  //     case "Open":
-  //       // Only "PM" group users can save when the task is in "Open" state
-  //       return currentUser.groups && currentUser.groups.includes("PM")
-  //     case "To-Do":
-  //       // Example condition for "To-Do" state
-  //       return currentUser.groups && currentUser.groups.includes("Developer")
-  //     case "Doing":
-  //       // Example condition for "Doing" state
-  //       return currentUser.groups && currentUser.groups.includes("QA")
-  //     default:
-  //       // Default case for states where saving is not allowed
-  //       return false
-  //   }
-  // }
+  const handleReviewTask = async () => {
+    if (!selectedTask || !selectedTask.Task_id) {
+      setError("Task ID is missing.")
+      return
+    }
+
+    try {
+      const response = await axios.put("http://localhost:3000/review-task", {
+        Task_id: selectedTask.Task_id
+      })
+      console.log("Task reviewed successfully:", response.data)
+      fetchTasks() // Refresh the tasks list to show updated state
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error reviewing task:", error.response?.data || error.message)
+      setError("Unable to review task.")
+    }
+  }
+
+  const handleApproveTask = async () => {
+    if (!selectedTask || !selectedTask.Task_id) {
+      setError("Task ID is missing.")
+      return
+    }
+
+    try {
+      const response = await axios.put("http://localhost:3000/approve-task", {
+        Task_id: selectedTask.Task_id
+      })
+      console.log("Task approved successfully:", response.data)
+      fetchTasks() // Refresh the tasks list to show updated state
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error approving task:", error.response?.data || error.message)
+      setError("Unable to approve task.")
+    }
+  }
+
+  const handleRejectTask = async () => {
+    if (!selectedTask || !selectedTask.Task_id) {
+      setError("Task ID is missing.")
+      return
+    }
+
+    try {
+      const response = await axios.put("http://localhost:3000/reject-task", {
+        Task_id: selectedTask.Task_id
+      })
+      console.log("Task rejected successfully:", response.data)
+      fetchTasks() // Refresh the tasks list to show updated state
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error rejecting task:", error.response?.data || error.message)
+      setError("Unable to reject task.")
+    }
+  }
+
+  const handleCloseTask = async () => {
+    if (!selectedTask || !selectedTask.Task_id) {
+      setError("Task ID is missing.")
+      return
+    }
+
+    try {
+      const response = await axios.put("http://localhost:3000/close-task", {
+        Task_id: selectedTask.Task_id
+      })
+      console.log("Task closed successfully:", response.data)
+      fetchTasks() // Refresh the tasks list to show updated state
+      setShowTaskViewModal(false)
+    } catch (error) {
+      console.error("Error closing task:", error.response?.data || error.message)
+      setError("Unable to close task.")
+    }
+  }
 
   return (
     <div className="app-page">
@@ -444,9 +513,31 @@ const AppPage = ({ currentUser }) => {
                 {/* Conditional rendering for buttons */}
                 {selectedTask && (
                   <div>
+                    {/* Check for To-Do state and group permission for assignment */}
                     {selectedTask.Task_state === "To-Do" && hasGroupPermission && <button onClick={handleAssignTask}>Assign</button>}
+
+                    {/* Check for Open state and group permission for release */}
                     {selectedTask.Task_state === "Open" && hasGroupPermission && <button onClick={handleReleaseTask}>Release</button>}
+
+                    {/* Check for Doing state and group permission for unassignment */}
+                    {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleUnassignTask}>Unassign</button>}
+
+                    {/* Check for Doing state and group permission for review */}
+                    {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleReviewTask}>Review</button>}
+
+                    {/* Check for Done state and group permission for approval */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleApproveTask}>Approve</button>}
+
+                    {/* Check for Done state and group permission for rejection */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject</button>}
+
+                    {/* Check for Done state and group permission for closing */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleCloseTask}>Close</button>}
+
+                    {/* Default Save button if there are permissions */}
                     {taskPermissions.length > 0 && <button>Save</button>}
+
+                    {/* Cancel button */}
                     <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
                   </div>
                 )}

@@ -34,13 +34,13 @@ router.post("/plans", verifyToken, taskController.getPlans) // No group restrict
 
 // Task Routes
 router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.createTask) // Project Lead
-router.put("/release-task", verifyToken, CheckGroup("PM"), CheckTaskStatePermission, appendTaskNotes, taskController.releaseTask) // Project Manager
-router.put("/assign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.assignTask) // Developer
-router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.unassignTask) // Developer
-router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, appendTaskNotes, taskController.reviewTask) // Developer
-router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.approveTask) // Project Lead
-router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.rejectTask) // Project Lead
-router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, appendTaskNotes, taskController.closeTask) // Project Lead
+router.put("/release-task", verifyToken, CheckGroup("PM"), CheckTaskStatePermission, taskController.releaseTask) // Project Manager
+router.put("/assign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.assignTask) // Developer
+router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.unassignTask) // Developer
+router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.reviewTask) // Developer
+router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.approveTask) // Project Lead
+router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.rejectTask) // Project Lead
+router.put("/close-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.closeTask) // Project Lead
 router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 router.post("/task", verifyToken, taskController.viewTask)
 router.post("/check-permissions", verifyToken, CheckTaskStatePermission, (req, res) => {

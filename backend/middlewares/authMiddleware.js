@@ -119,53 +119,47 @@ const CheckTaskStatePermission = async (req, res, next) => {
 const appendTaskNotes = async (req, res, next) => {
   const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
   let notes = ""
-  let state = " - "
+  let prevState = " - " // Previous state placeholder
+  let newState = req.body.newState || " - " // Ensure this comes from req.body
   let creator = "unknown" // Default value for task_creator
   let owner = "unknown" // Default value for task_owner
   let actionDescription = "Updated" // Default action description
 
   try {
-    // Use consistent naming (assuming Task_id is used consistently)
+    // Retrieve existing task data
     const taskId = req.body.Task_id
     if (taskId) {
-      // Adjust query to retrieve task_state, task_creator, and task_owner
       const [[task]] = await db.execute("SELECT task_notes, task_state, task_creator, task_owner FROM task WHERE task_id = ?", [taskId])
-
-      // Log retrieved data for debugging
-      console.log("Retrieved Task Data:", task)
 
       if (task) {
         notes = task.task_notes || ""
-        state = task.task_state || state // Use retrieved state if available
+        prevState = task.task_state || prevState // Use retrieved state as previous state
         creator = task.task_creator || creator
         owner = task.task_owner || owner
 
-        // Determine action description based on state and route
+        // Determine action description based on route
         if (req.route && req.route.path) {
           if (req.route.path.includes("release-task")) {
             actionDescription = "Released"
+            newState = "To-Do" // Set the target state
           } else if (req.route.path.includes("assign-task")) {
             actionDescription = "Assigned"
+            newState = "Doing" // Set the target state
           } else if (req.route.path.includes("complete-task")) {
             actionDescription = "Completed"
+            newState = "Done" // Set the target state
           }
-          // Add more conditions based on your routes and transitions if necessary
         }
 
-        // Log individual values
-        console.log("Task State:", state)
-        console.log("Task Creator:", creator)
-        console.log("Task Owner:", owner)
-        console.log("Existing Task Notes:", notes)
+        console.log("Task State Transition:", prevState, "->", newState)
       }
     } else {
       console.log("No Task_id provided in request body.")
     }
 
-    // Construct the notes entry dynamically
-    const constructedNotes = `*************\nTASK ${actionDescription.toUpperCase()} [${creator || owner}, ${state}, ${timestamp} (UTC)]\n\n${req.body.notes || ""}\n\n${notes}`
+    // Construct the notes entry with state transition information
+    const constructedNotes = `*************\nTASK ${actionDescription.toUpperCase()} [${creator || owner}, ${prevState} -> ${newState}, ${timestamp} (UTC)]\n\n${req.body.notes || ""}\n\n${notes}`
 
-    // Log the constructed notes before assignment
     console.log("Constructed Notes Before Assignment:", constructedNotes)
 
     req.body.notes = constructedNotes
