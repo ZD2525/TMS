@@ -644,30 +644,44 @@ exports.saveTaskNotes = async (req, res) => {
 
   try {
     // Retrieve existing task notes and plan
-    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_plan FROM Task WHERE Task_id = ?", [Task_id])
+    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_plan, Task_state FROM Task WHERE Task_id = ?", [Task_id])
 
     if (!existingTask) {
       return res.status(404).send("Task not found.")
     }
 
-    // Prepare note entries based on the conditions
+    // Prepare audit entry
+    const username = req.body.username || "unknown"
+    const state = existingTask.Task_state || "Unknown"
+    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const auditEntry = `[${username}, ${state}, ${timestamp}]`
+
+    // Prepare note entries
     let noteEntry = ""
+
+    // Handle plan change note
     if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
-      // Handle plan change note
-      noteEntry += `PLAN CHANGE NOTE: The Task Plan has been changed to '${Task_plan || "None"}'`
+      noteEntry += `*************\nThe Task Plan has been changed to '${Task_plan || "None"}'. ${auditEntry}`
     }
+
+    // Append user-provided note if present
     if (newNote) {
-      // Append user-provided note if present
-      noteEntry += newNote
+      if (noteEntry) {
+        // If there is already a noteEntry (e.g., plan change), add a new entry with a separator
+        noteEntry += `\n*************\n${newNote} ${auditEntry}`
+      } else {
+        // Add user note with a separator if no plan change note exists
+        noteEntry = `*************\n${newNote} ${auditEntry}`
+      }
     }
 
     // If no plan change and no additional note, return without making updates
-    if (!noteEntry) {
+    if (!noteEntry.trim()) {
       return res.status(400).send("No changes detected.")
     }
 
-    // Combine new note with existing notes
-    const updatedNotes = `${noteEntry}${existingTask.Task_notes || ""}`
+    // Combine new note with existing notes, ensuring consistent formatting
+    const updatedNotes = `${noteEntry.trim()}\n\n${existingTask.Task_notes || ""}`.trim()
 
     // Build the base query and values for updating task notes (and optionally the plan)
     let query = "UPDATE Task SET Task_notes = ?"

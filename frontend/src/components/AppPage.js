@@ -402,40 +402,43 @@ const AppPage = ({ currentUser }) => {
       return
     }
 
-    try {
-      let notesToSave = taskData.newNote || "No additional notes provided."
+    // Skip saving if there are no additional notes and no plan change
+    if (!taskData.newNote && !hasPlanChanged) {
+      setError("No changes detected to save.")
+      return
+    }
 
-      // Check if there is a plan change and ensure that the note is added only once
+    try {
       let updatedPlan = selectedTask.Task_plan
-      if (hasPlanChanged && !selectedTask.Task_notes?.includes(`PLAN CHANGE NOTE: The Task Plan has been changed to '${taskData.Task_plan || "None"}'`)) {
-        const planChangeNote = `PLAN CHANGE NOTE: The Task Plan has been changed to '${taskData.Task_plan || "None"}'*************`
-        notesToSave = `${planChangeNote}${notesToSave}`
+
+      // If there is a plan change, update the Task_plan field
+      if (hasPlanChanged) {
         updatedPlan = taskData.Task_plan // Update the plan to the new value
       }
 
-      // Create the note entry with a timestamp
-      const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
-      const noteEntry = `
-  *************\n${notesToSave} [${currentUser.username}, ${selectedTask.Task_state}, ${timestamp}]
-      `
-
-      // Call the save-task-notes route and update the task's plan if changed
+      // Call the save-task-notes route
       await axios.put("http://localhost:3000/save-task-notes", {
         Task_id: selectedTask.Task_id,
-        newNote: noteEntry,
-        Task_plan: updatedPlan // Pass the updated plan if it has changed
+        newNote: taskData.newNote ? taskData.newNote.trim() : undefined,
+        Task_plan: hasPlanChanged ? updatedPlan : undefined,
+        username: currentUser.username // Pass username to the backend if needed
       })
 
-      // Fetch updated task details to reflect changes
+      // Fetch updated task details to reflect changes immediately
       const updatedTaskResponse = await axios.post("http://localhost:3000/task", {
         taskId: selectedTask.Task_id
       })
+
+      // Update the state of selectedTask and refresh the task data
       setSelectedTask(updatedTaskResponse.data)
       setTaskData(prevData => ({
         ...prevData,
         newNote: "",
         Task_plan: updatedTaskResponse.data.Task_plan // Update taskData with the new plan
       }))
+
+      // Refresh the task list to show the updated plan in the display
+      await fetchTasks()
 
       // Optionally, clear any error messages
       setError("")
@@ -563,30 +566,25 @@ const AppPage = ({ currentUser }) => {
 
       {showTaskViewModal && selectedTask && (
         <div className="modal-overlay" onClick={handleCloseTaskViewModal}>
-          <div className="modal-content task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "1200px" }}>
             <div className="task-modal-container">
+              {/* Task Creation / Details Section */}
               <div className="task-creation-section">
                 <h2>{selectedTask.Task_name}</h2>
                 <div className="form-group">
-                  {/* Existing fields */}
+                  {/* Task fields */}
                   <label>Creator:</label>
                   <input type="text" value={selectedTask.Task_creator || ""} readOnly />
-
                   <label>Creation Date:</label>
                   <input type="text" value={selectedTask.Task_createDate || ""} readOnly />
-
                   <label>Status:</label>
                   <input type="text" value={selectedTask.Task_state || ""} readOnly />
-
                   <label>Task Name:</label>
                   <input type="text" value={selectedTask.Task_name || ""} readOnly />
-
                   <label>Task Owner:</label>
                   <input type="text" value={selectedTask.Task_owner || ""} readOnly />
-
                   <label>Description:</label>
                   <textarea value={selectedTask.Task_description || ""} readOnly />
-
                   <label>Plan Name:</label>
                   {selectedTask && (selectedTask.Task_state === "Open" || selectedTask.Task_state === "Done") && hasGroupPermission ? (
                     <select name="Task_plan" value={taskData.Task_plan} onChange={handlePlanSelection}>
@@ -600,52 +598,62 @@ const AppPage = ({ currentUser }) => {
                   ) : (
                     <input type="text" value={selectedTask?.Task_plan || "No Plan"} readOnly />
                   )}
-
                   <label>Plan Start Date:</label>
                   <input type="text" value={taskData.Task_planStartDate || ""} readOnly />
-
                   <label>Plan End Date:</label>
                   <input type="text" value={taskData.Task_planEndDate || ""} readOnly />
                 </div>
-
-                {/* Conditional rendering for buttons */}
-                {selectedTask && (
-                  <div>
-                    {/* Check for To-Do state and group permission for assignment */}
-                    {selectedTask.Task_state === "To-Do" && hasGroupPermission && <button onClick={handleAssignTask}>Assign</button>}
-
-                    {/* Check for Open state and group permission for release */}
-                    {selectedTask.Task_state === "Open" && hasGroupPermission && <button onClick={handleReleaseTask}>Release</button>}
-
-                    {/* Check for Doing state and group permission for unassignment */}
-                    {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleUnassignTask}>Unassign</button>}
-
-                    {/* Check for Doing state and group permission for review */}
-                    {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleReviewTask}>Review</button>}
-
-                    {/* Approve button for tasks in the "DONE" state without plan changes */}
-                    {selectedTask && selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && <button onClick={handleApproveTask}>Approve</button>}
-
-                    {/* Reject button - if there is a plan change, show "Reject with Plan Change" */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>{hasPlanChanged ? "Reject with Plan Change" : "Reject"}</button>}
-
-                    {/* Save button for tasks except DONE state with a plan change */}
-                    {selectedTask.Task_state !== "Done" || !hasPlanChanged ? <button onClick={handleSaveNotes}>Save</button> : null}
-
-                    {/* Cancel button */}
-                    <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
-                  </div>
-                )}
               </div>
 
+              {/* Logs and Notes Section */}
               <div className="task-logs-section">
                 <h3>Logs</h3>
                 <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No logs available.</p>}</div>
 
-                {/* New textarea for entering notes */}
+                {/* Notes Input Area */}
                 <div className="task-notes-container">
                   <label>Notes:</label>
                   <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} placeholder="Add notes here..." />
+                </div>
+
+                {/* Buttons for the modal footer */}
+                {/* Buttons for the modal footer with permission checks */}
+                {/* Buttons for the modal footer with permission checks */}
+                <div className="modal-footer">
+                  {selectedTask && selectedTask.Task_state === "Open" && hasGroupPermission && (
+                    <>
+                      <button onClick={handleReleaseTask}>Release</button>
+                      <button onClick={handleSaveNotes}>Save</button>
+                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                    </>
+                  )}
+                  {selectedTask && selectedTask.Task_state === "To-Do" && hasGroupPermission && (
+                    <>
+                      <button onClick={handleAssignTask}>Assign</button>
+                      <button onClick={handleSaveNotes}>Save</button>
+                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                    </>
+                  )}
+                  {selectedTask && selectedTask.Task_state === "Doing" && hasGroupPermission && (
+                    <>
+                      <button onClick={handleUnassignTask}>Unassign</button>
+                      <button onClick={handleReviewTask}>Review</button>
+                      <button onClick={handleSaveNotes}>Save</button>
+                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                    </>
+                  )}
+                  {selectedTask && selectedTask.Task_state === "Done" && hasGroupPermission && (
+                    <>
+                      {!hasPlanChanged && (
+                        <>
+                          <button onClick={handleApproveTask}>Approve</button>
+                          <button onClick={handleSaveNotes}>Save</button>
+                        </>
+                      )}
+                      <button onClick={handleRejectTask}>{hasPlanChanged ? "Reject with Plan Change" : "Reject"}</button>
+                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
