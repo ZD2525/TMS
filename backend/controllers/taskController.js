@@ -66,7 +66,9 @@ exports.updateApplication = async (req, res) => {
         UPDATE task
         SET Task_id = CONCAT(?, SUBSTRING(Task_id, CHAR_LENGTH(?) + 1))
         WHERE Task_id LIKE CONCAT(?, '_%')`
-      await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
+      console.log(`Updating Task_id from ${originalAppAcronym} to ${App_Acronym}`)
+      const [result] = await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
+      console.log(`Number of tasks updated: ${result.affectedRows}`)
     }
 
     await connection.commit()
