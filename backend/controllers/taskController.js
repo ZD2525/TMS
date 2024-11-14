@@ -25,30 +25,58 @@ exports.createApplication = async (req, res) => {
 
   try {
     await db.query(query, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create])
-    res.status(201).send("Application created successfully.")
+    res.send({ message: "Application created successfully." })
   } catch (error) {
     console.error("Error creating application:", error)
-    res.status(500).send("Error creating application.")
+    res.status(500).send({ error: "Error creating application. Please try again later." })
   }
 }
 
 // Update an existing application (Project Lead)
 exports.updateApplication = async (req, res) => {
-  const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+  const { originalAppAcronym, App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
 
   console.log("Update request received with data:", req.body)
 
-  const query = `
-    UPDATE APPLICATION 
-    SET App_Description = ?, App_Rnumber = ?, App_startDate = ?, App_endDate = ?, App_permit_Open = ?, App_permit_toDoList = ?, App_permit_Doing = ?, App_permit_Done = ?, App_permit_Create = ? 
-    WHERE App_Acronym = ?`
+  // Validation for empty App_Acronym
+  if (!App_Acronym) {
+    return res.status(400).json({ error: "App_Acronym cannot be empty." })
+  }
+
+  const connection = await db.getConnection()
 
   try {
-    await db.query(query, [App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create, App_Acronym])
-    res.status(200).send("Application updated successfully.")
+    await connection.beginTransaction()
+
+    // Step 1: Update the application table
+    const appUpdateQuery = `
+      UPDATE application 
+      SET App_Acronym = ?, App_Description = ?, App_Rnumber = ?, App_startDate = ?, App_endDate = ?, App_permit_Open = ?, App_permit_toDoList = ?, App_permit_Doing = ?, App_permit_Done = ?, App_permit_Create = ? 
+      WHERE App_Acronym = ?`
+    const [appUpdateResult] = await connection.query(appUpdateQuery, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create, originalAppAcronym])
+
+    if (appUpdateResult.affectedRows === 0) {
+      await connection.rollback()
+      return res.status(404).json({ error: "Application not found or no changes were made." })
+    }
+
+    // Step 2: Update related rows in the tasks table for Task_id format: <App_Acronym>_<Task_Rnumber>
+    if (App_Acronym !== originalAppAcronym) {
+      const updateTaskIdQuery = `
+        UPDATE task
+        SET Task_id = CONCAT(?, SUBSTRING(Task_id, CHAR_LENGTH(?) + 1))
+        WHERE Task_id LIKE CONCAT(?, '_%')`
+      await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
+    }
+
+    await connection.commit()
+    res.json({ message: "Application and related tasks updated successfully." })
   } catch (error) {
+    await connection.rollback()
     console.error("Error during application update:", error)
-    res.status(500).send("Error updating application.")
+    res.status(500).json({ error: "Error updating application." })
+  } finally {
+    connection.release()
   }
 }
 
@@ -58,7 +86,7 @@ exports.getApplications = async (req, res) => {
 
   try {
     const [results] = await db.query(query)
-    res.status(200).json(results)
+    res.json(results)
   } catch (error) {
     res.status(500).send("Error retrieving applications.")
   }
@@ -194,7 +222,7 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found, already released, or App_Acronym does not match.")
     }
 
-    res.status(200).send("Task successfully released to To-Do.")
+    res.send("Task successfully released to To-Do.")
   } catch (error) {
     console.error("Error releasing task:", error)
     res.status(500).send("Error releasing task.")
@@ -240,7 +268,7 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found or cannot be assigned.")
     }
 
-    res.status(200).send("Task assigned successfully.")
+    res.send("Task assigned successfully.")
   } catch (error) {
     console.error("Error assigning task:", error)
     res.status(500).send("Error assigning task.")
@@ -282,7 +310,7 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found or cannot be unassigned.")
     }
 
-    res.status(200).send("Task unassigned successfully.")
+    res.send("Task unassigned successfully.")
   } catch (error) {
     console.error("Error unassigning task:", error)
     res.status(500).send("Error unassigning task.")
@@ -332,7 +360,7 @@ ${existingTask.Task_notes || ""}
 
     if (!group) {
       console.warn("No permitted group found for the app.")
-      return res.status(200).send("Task completed successfully, but no notifications were sent.")
+      return res.send("Task completed successfully, but no notifications were sent.")
     }
 
     // Retrieve users in the specified group(s)
@@ -340,7 +368,7 @@ ${existingTask.Task_notes || ""}
 
     if (userarray.length === 0) {
       console.warn("No users found in the specified group(s).")
-      return res.status(200).send("Task completed successfully, but no notifications were sent.")
+      return res.send("Task completed successfully, but no notifications were sent.")
     }
 
     // Retrieve email addresses of the users
@@ -375,7 +403,7 @@ ${existingTask.Task_notes || ""}
       )
     }
 
-    res.status(200).send("Task completed successfully.")
+    res.send("Task completed successfully.")
   } catch (error) {
     console.error("Error completing task:", error)
     res.status(500).send("Error completing task.")
@@ -417,7 +445,7 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found or cannot be approved.")
     }
 
-    res.status(200).send("Task approved and closed.")
+    res.send("Task approved and closed.")
   } catch (error) {
     console.error("Error approving task:", error)
     res.status(500).send("Error approving task.")
@@ -467,7 +495,7 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found or cannot be rejected.")
     }
 
-    res.status(200).send("Task rejected and moved to Doing.")
+    res.send("Task rejected and moved to Doing.")
   } catch (error) {
     console.error("Error rejecting task:", error)
     res.status(500).send("Error rejecting task.")
@@ -482,7 +510,7 @@ exports.getTasks = async (req, res) => {
     const tasksQuery = `SELECT * FROM Task WHERE Task_app_Acronym = ?`
     const [tasksArray] = await db.execute(tasksQuery, [App_Acronym])
 
-    res.status(200).json(tasksArray)
+    res.json(tasksArray)
   } catch (error) {
     console.error("Error retrieving tasks:", error)
     res.status(500).send("Server error, please try again later.")
@@ -530,7 +558,7 @@ exports.viewTask = async (req, res) => {
       Plan_endDate: planDetails.Plan_endDate || null
     }
 
-    res.status(200).json(responseData)
+    res.json(responseData)
   } catch (error) {
     console.error("Error fetching task:", error)
     res.status(500).send("Server error, please try again later.")

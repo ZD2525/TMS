@@ -8,6 +8,7 @@ Modal.setAppElement("#app") // Ensure this matches the root element ID of your a
 
 const TaskManagementSystem = () => {
   const [applications, setApplications] = useState([])
+  const [originalAppAcronym, setOriginalAppAcronym] = useState("")
   const [userRole, setUserRole] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -66,6 +67,18 @@ const TaskManagementSystem = () => {
   const handleCreateApplication = () => {
     setShowCreateModal(true)
     setEditMode(false)
+    setFormData({
+      App_Acronym: "",
+      App_Rnumber: "",
+      App_Description: "",
+      App_startDate: "",
+      App_endDate: "",
+      App_permit_Open: "PM", // Default value for Permit Open
+      App_permit_toDoList: "Dev", // Default value for Permit Todo
+      App_permit_Doing: "Dev", // Default value for Permit Doing
+      App_permit_Done: "PL", // Default value for Permit Done
+      App_permit_Create: "PL" // Default value for Permit Create
+    })
   }
 
   const handleEditApplication = app => {
@@ -83,6 +96,7 @@ const TaskManagementSystem = () => {
       App_permit_Done: app.App_permit_Done,
       App_permit_Create: app.App_permit_Create
     })
+    setOriginalAppAcronym(app.App_Acronym) // Store the original App_Acronym
     setShowCreateModal(true)
     setEditMode(true)
   }
@@ -111,8 +125,16 @@ const TaskManagementSystem = () => {
 
   const handleSubmit = async () => {
     try {
+      if (!formData.App_Acronym) {
+        setError("App_Acronym cannot be empty.")
+        return
+      }
+
       if (editMode) {
-        await axios.put("http://localhost:3000/update-application", formData)
+        await axios.put("http://localhost:3000/update-application", {
+          ...formData,
+          originalAppAcronym // Pass the original App_Acronym
+        })
       } else {
         await axios.post("http://localhost:3000/create-application", formData)
       }
@@ -120,7 +142,13 @@ const TaskManagementSystem = () => {
       const response = await axios.get("http://localhost:3000/applications")
       setApplications(response.data)
     } catch (err) {
-      setError(err.response?.data?.error || "An unexpected error occurred.")
+      if (err.response && err.response.data && err.response.data.error) {
+        setError(err.response.data.error)
+      } else if (err.response && err.response.status === 409) {
+        setError("The App_Acronym already exists. Please use a different value.")
+      } else {
+        setError("An unexpected error occurred.")
+      }
     }
   }
 
@@ -186,14 +214,26 @@ const TaskManagementSystem = () => {
         <div className="form-group-row">
           <div className="form-group">
             <label>
-              Name:
-              <input type="text" name="App_Acronym" value={formData.App_Acronym} onChange={handleChange} />
+              App_Acronym:
+              <input
+                type="text"
+                name="App_Acronym"
+                value={formData.App_Acronym}
+                onChange={handleChange}
+                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+              />
             </label>
           </div>
           <div className="form-group">
             <label>
               RNumber:
-              <input type="text" name="App_Rnumber" value={formData.App_Rnumber} onChange={handleChange} />
+              <input
+                type="text"
+                name="App_Rnumber"
+                value={formData.App_Rnumber}
+                onChange={handleChange}
+                disabled // RNumber is always disabled
+              />
             </label>
           </div>
         </div>
@@ -207,13 +247,25 @@ const TaskManagementSystem = () => {
           <div className="form-group">
             <label>
               Start Date:
-              <input type="date" name="App_startDate" value={formData.App_startDate} onChange={handleChange} />
+              <input
+                type="date"
+                name="App_startDate"
+                value={formData.App_startDate}
+                onChange={handleChange}
+                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+              />
             </label>
           </div>
           <div className="form-group">
             <label>
               End Date:
-              <input type="date" name="App_endDate" value={formData.App_endDate} onChange={handleChange} />
+              <input
+                type="date"
+                name="App_endDate"
+                value={formData.App_endDate}
+                onChange={handleChange}
+                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+              />
             </label>
           </div>
         </div>
