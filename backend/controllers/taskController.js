@@ -538,11 +538,10 @@ exports.rejectTask = async (req, res) => {
       return res.status(404).send("Task not found or cannot be rejected.")
     }
 
-    // Determine plan update logic based on newPlan
+    // Handle plan change (including setting to empty/null)
     let planUpdateQuery = ""
     let planUpdateValues = []
     if (newPlan !== undefined) {
-      // If newPlan is explicitly provided, update it (even if it's empty)
       planUpdateQuery = ", Task_plan = ?"
       planUpdateValues.push(newPlan || null) // Set to NULL if empty to remove the Task_plan
     }
@@ -637,32 +636,60 @@ exports.viewTask = async (req, res) => {
 }
 
 exports.saveTaskNotes = async (req, res) => {
-  const { Task_id, newNote } = req.body
+  const { Task_id, newNote, Task_plan } = req.body
 
-  if (!Task_id || !newNote) {
-    return res.status(400).send("Task ID and note are required.")
+  if (!Task_id) {
+    return res.status(400).send("Task ID is required.")
   }
 
   try {
-    // Retrieve existing task notes
-    const [[existingTask]] = await db.execute("SELECT Task_notes FROM Task WHERE Task_id = ?", [Task_id])
+    // Retrieve existing task notes and plan
+    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_plan FROM Task WHERE Task_id = ?", [Task_id])
 
     if (!existingTask) {
       return res.status(404).send("Task not found.")
     }
 
-    // Append the new note
-    const updatedNotes = `${newNote}\n\n${existingTask.Task_notes || ""}`
+    // Prepare note entries based on the conditions
+    let noteEntry = ""
+    if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
+      // Handle plan change note
+      noteEntry += `PLAN CHANGE NOTE: The Task Plan has been changed to '${Task_plan || "None"}'`
+    }
+    if (newNote) {
+      // Append user-provided note if present
+      noteEntry += newNote
+    }
 
-    // Update the task notes in the database
-    const query = "UPDATE Task SET Task_notes = ? WHERE Task_id = ?"
-    const [result] = await db.execute(query, [updatedNotes, Task_id])
+    // If no plan change and no additional note, return without making updates
+    if (!noteEntry) {
+      return res.status(400).send("No changes detected.")
+    }
+
+    // Combine new note with existing notes
+    const updatedNotes = `${noteEntry}${existingTask.Task_notes || ""}`
+
+    // Build the base query and values for updating task notes (and optionally the plan)
+    let query = "UPDATE Task SET Task_notes = ?"
+    const values = [updatedNotes]
+
+    // Check if Task_plan needs to be updated
+    if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
+      query += ", Task_plan = ?"
+      values.push(Task_plan)
+    }
+
+    query += " WHERE Task_id = ?"
+    values.push(Task_id)
+
+    // Update the task notes (and optionally the plan) in the database
+    const [result] = await db.execute(query, values)
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or unable to update notes.")
     }
 
-    res.status(200).send("Task notes updated successfully.")
+    res.status(200).send("Task notes and plan updated successfully.")
   } catch (error) {
     console.error("Error updating task notes:", error)
     res.status(500).send("Server error, unable to update notes.")

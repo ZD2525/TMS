@@ -397,35 +397,51 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleSaveNotes = async () => {
-    if (!selectedTask || !selectedTask.Task_id || !taskData.newNote) {
-      setError("Task ID is missing or no note provided.")
+    if (!selectedTask) {
+      setError("No task is selected.")
       return
     }
 
     try {
+      let notesToSave = taskData.newNote || "No additional notes provided."
+
+      // Check if there is a plan change and ensure that the note is added only once
+      let updatedPlan = selectedTask.Task_plan
+      if (hasPlanChanged && !selectedTask.Task_notes?.includes(`PLAN CHANGE NOTE: The Task Plan has been changed to '${taskData.Task_plan || "None"}'`)) {
+        const planChangeNote = `PLAN CHANGE NOTE: The Task Plan has been changed to '${taskData.Task_plan || "None"}'*************`
+        notesToSave = `${planChangeNote}${notesToSave}`
+        updatedPlan = taskData.Task_plan // Update the plan to the new value
+      }
+
+      // Create the note entry with a timestamp
       const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
       const noteEntry = `
-  *************
-  ${taskData.newNote} [${currentUser.username}, ${selectedTask.Task_state}, ${timestamp}]
-  `
+  *************\n${notesToSave} [${currentUser.username}, ${selectedTask.Task_state}, ${timestamp}]
+      `
 
-      // Save the new note
+      // Call the save-task-notes route and update the task's plan if changed
       await axios.put("http://localhost:3000/save-task-notes", {
         Task_id: selectedTask.Task_id,
-        newNote: noteEntry
+        newNote: noteEntry,
+        Task_plan: updatedPlan // Pass the updated plan if it has changed
       })
 
-      // Fetch updated task details and logs
-      const response = await axios.post("http://localhost:3000/task", {
+      // Fetch updated task details to reflect changes
+      const updatedTaskResponse = await axios.post("http://localhost:3000/task", {
         taskId: selectedTask.Task_id
       })
-      setSelectedTask(response.data)
+      setSelectedTask(updatedTaskResponse.data)
+      setTaskData(prevData => ({
+        ...prevData,
+        newNote: "",
+        Task_plan: updatedTaskResponse.data.Task_plan // Update taskData with the new plan
+      }))
 
-      // Clear the newNote input field after successful save
-      setTaskData(prevData => ({ ...prevData, newNote: "" }))
+      // Optionally, clear any error messages
+      setError("")
     } catch (error) {
-      console.error("Error saving notes:", error.response?.data || error.message)
-      setError("Unable to save notes.")
+      console.error("Error saving changes:", error)
+      setError("Unable to save changes.")
     }
   }
 
@@ -607,15 +623,14 @@ const AppPage = ({ currentUser }) => {
                     {/* Check for Doing state and group permission for review */}
                     {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleReviewTask}>Review</button>}
 
-                    {/* Check for Done state and group permission for approval */}
-                    {/* Check for Done state, group permission for approval, and that there is a valid Task_plan */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && selectedTask.Task_plan && <button onClick={handleApproveTask}>Approve</button>}
+                    {/* Approve button for tasks in the "DONE" state without plan changes */}
+                    {selectedTask && selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && <button onClick={handleApproveTask}>Approve</button>}
 
-                    {/* Show the reject button - if plan changed or Task_plan is empty, display "Reject with Plan Change" */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>{hasPlanChanged || !selectedTask.Task_plan ? "Reject with Plan Change" : "Reject"}</button>}
+                    {/* Reject button - if there is a plan change, show "Reject with Plan Change" */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>{hasPlanChanged ? "Reject with Plan Change" : "Reject"}</button>}
 
-                    {/* Only show the Save button if there is no plan change and Task_plan is valid */}
-                    {taskPermissions.length > 0 && !hasPlanChanged && selectedTask.Task_plan && <button onClick={handleSaveNotes}>Save</button>}
+                    {/* Save button for tasks except DONE state with a plan change */}
+                    {selectedTask.Task_state !== "Done" || !hasPlanChanged ? <button onClick={handleSaveNotes}>Save</button> : null}
 
                     {/* Cancel button */}
                     <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
