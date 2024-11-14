@@ -44,7 +44,6 @@ router.post("/tasks", verifyToken, taskController.getTasks) // No group restrict
 router.post("/task", verifyToken, taskController.viewTask)
 router.put("/save-task-notes", taskController.saveTaskNotes)
 router.post("/check-permissions", verifyToken, CheckTaskStatePermission, (req, res) => {
-  // Returning requiredGroup as an array
   res.json({ success: true, requiredGroup: Array.isArray(req.requiredGroup) ? req.requiredGroup : [req.requiredGroup] })
 })
 

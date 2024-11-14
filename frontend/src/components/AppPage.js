@@ -71,12 +71,11 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/plans", {
-        appAcronym
-      })
+      const response = await axios.post("http://localhost:3000/plans", { appAcronym })
+      console.log("Fetched Plans Response:", response.data)
       setPlans(response.data)
     } catch (error) {
-      console.error("Error fetching plans:", error)
+      console.error("Error fetching plans:", error.response?.data || error.message)
     }
   }
 
@@ -117,24 +116,33 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      // Reset hasPlanChanged when opening a new task
       setHasPlanChanged(false)
 
       const response = await axios.post("http://localhost:3000/task", { taskId: task.Task_id })
-      setSelectedTask(response.data)
+      const taskData = response.data
+      taskData.Task_app_Acronym = task.Task_app_Acronym || taskData.Task_app_Acronym
 
+      // Prepopulate the dropdown with the current plan if it exists
+      setTaskData(prevData => ({
+        ...prevData,
+        Task_plan: taskData.Task_plan || "",
+        Task_planStartDate: taskData.Plan_startDate || "",
+        Task_planEndDate: taskData.Plan_endDate || ""
+      }))
+
+      setSelectedTask(taskData)
+
+      // Fetch permissions if needed
       const permissionResponse = await axios.post("http://localhost:3000/check-permissions", {
         Task_id: response.data.Task_id,
         App_Acronym: response.data.Task_app_Acronym
       })
 
       if (permissionResponse.data && permissionResponse.data.success) {
-        console.log("Required Group from backend response:", permissionResponse.data.requiredGroup)
         setTaskPermissions(permissionResponse.data.requiredGroup || [])
         const hasPermission = await checkUserGroupPermission(permissionResponse.data.requiredGroup)
         setHasGroupPermission(hasPermission)
       } else {
-        console.warn("No permissions returned or success flag missing.")
         setTaskPermissions([])
         setHasGroupPermission(false)
       }
@@ -188,13 +196,13 @@ const AppPage = ({ currentUser }) => {
     })
     setLogs([])
     setError("")
+    setSelectedTask(null) // Clear selected task
   }
 
   const handleCloseTaskViewModal = () => {
     setShowTaskViewModal(false)
-    setSelectedTask(null)
-    // Clear the newNote input field when closing the modal
-    setTaskData(prevData => ({ ...prevData, newNote: "" }))
+    setSelectedTask(null) // Clear selected task when closing
+    setTaskData(prevData => ({ ...prevData, newNote: "" })) // Clear any new notes
   }
 
   const handleChange = e => {
@@ -211,15 +219,25 @@ const AppPage = ({ currentUser }) => {
     const { name, value } = e.target
     setTaskData(prevData => ({ ...prevData, [name]: value }))
   }
-
   const handlePlanSelection = e => {
     const selectedPlan = plans.find(plan => plan.Plan_MVP_name === e.target.value)
     const newPlanName = selectedPlan ? selectedPlan.Plan_MVP_name : ""
 
-    // Check if the plan has changed
+    // If no selected task (creating a new task), update directly
+    if (!selectedTask) {
+      setTaskData(prevData => ({
+        ...prevData,
+        Task_plan: newPlanName,
+        Task_planStartDate: selectedPlan?.Plan_startDate ? new Date(selectedPlan.Plan_startDate).toISOString().split("T")[0] : "",
+        Task_planEndDate: selectedPlan?.Plan_endDate ? new Date(selectedPlan.Plan_endDate).toISOString().split("T")[0] : ""
+      }))
+      return
+    }
+
+    // For existing tasks, update task data and check if the plan has changed
     setHasPlanChanged(selectedPlan && selectedPlan.Plan_MVP_name !== selectedTask.Task_plan)
 
-    // Update taskData to reflect the change
+    // Update taskData to reflect the change for an existing task
     setTaskData(prevData => ({
       ...prevData,
       Task_plan: newPlanName,
@@ -263,6 +281,7 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReleaseTask = async () => {
+    console.log("Releasing task with ID:", selectedTask.Task_id, "and App_Acronym:", selectedTask.Task_app_Acronym)
     try {
       const response = await axios.put("http://localhost:3000/release-task", {
         Task_id: selectedTask.Task_id,
@@ -272,7 +291,7 @@ const AppPage = ({ currentUser }) => {
       fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
-      console.error("Error releasing task:", error)
+      console.error("Error releasing task:", error.response?.data || error.message)
       setError("Unable to release task.")
     }
   }
@@ -297,14 +316,15 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReviewTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id) {
-      setError("Task ID is missing.")
+    if (!selectedTask || !selectedTask.Task_id || !selectedTask.Task_app_Acronym) {
+      setError("Task ID or app acronym is missing.")
       return
     }
 
     try {
       const response = await axios.put("http://localhost:3000/review-task", {
-        Task_id: selectedTask.Task_id
+        Task_id: selectedTask.Task_id,
+        app_acronym: selectedTask.Task_app_Acronym
       })
       console.log("Task reviewed successfully:", response.data)
       fetchTasks() // Refresh the tasks list to show updated state
@@ -406,19 +426,22 @@ const AppPage = ({ currentUser }) => {
         {["open", "todo", "doing", "done", "closed"].map(state => (
           <div key={state} className="task-column">
             <h2>{state.toUpperCase()}</h2>
-            {(Array.isArray(tasks[state]) ? tasks[state] : []).map(task => (
-              <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
-                <h3>{task.Task_id}</h3> {/* Display Task ID */}
-                <p>{task.Task_description || "No description provided."}</p> {/* Display Task Description */}
-                <div className="task-card-footer">
-                  <span className="plan-name" style={{ backgroundColor: task.Task_plan ? "#d3d3d3" : "" }}>
-                    {task.Task_plan || "No Plan"}
-                  </span>{" "}
-                  {/* Plan Name on bottom left */}
-                  <span className="task-owner">{task.Task_owner}</span> {/* Owner on bottom right */}
+            {(Array.isArray(tasks[state]) ? tasks[state] : []).map(task => {
+              const planColor = plans.find(plan => plan.Plan_MVP_name === task.Task_plan)?.Plan_color || "#d3d3d3"
+              return (
+                <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
+                  <h3>{task.Task_id}</h3> {/* Display Task ID */}
+                  <p>{task.Task_description || "No description provided."}</p> {/* Display Task Description */}
+                  <div className="task-card-footer">
+                    <span className="plan-name" style={{ backgroundColor: planColor }}>
+                      {task.Task_plan || "No Plan"}
+                    </span>
+                    {/* Plan Name on bottom left */}
+                    <span className="task-owner">{task.Task_owner}</span> {/* Owner on bottom right */}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ))}
       </div>
@@ -487,12 +510,11 @@ const AppPage = ({ currentUser }) => {
                       </option>
                     ))}
                   </select>
-
                   <label>Plan Start Date:</label>
-                  <input type="text" value={taskData.Task_planStartDate} readOnly />
+                  <input type="text" value={taskData.Task_planStartDate || ""} readOnly />
 
                   <label>Plan End Date:</label>
-                  <input type="text" value={taskData.Task_planEndDate} readOnly />
+                  <input type="text" value={taskData.Task_planEndDate || ""} readOnly />
                 </div>
                 <button onClick={handleCreateTask}>Create</button>
                 <button onClick={handleCloseTaskModal}>Cancel</button>
@@ -512,7 +534,7 @@ const AppPage = ({ currentUser }) => {
           <div className="modal-content task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
             <div className="task-modal-container">
               <div className="task-creation-section">
-                <h2>View Task</h2>
+                <h2>{selectedTask.Task_name}</h2>
                 <div className="form-group">
                   {/* Existing fields */}
                   <label>Creator:</label>
@@ -534,7 +556,7 @@ const AppPage = ({ currentUser }) => {
                   <textarea value={selectedTask.Task_description || ""} readOnly />
 
                   <label>Plan Name:</label>
-                  {selectedTask.Task_state === "Done" && hasGroupPermission ? (
+                  {selectedTask && (selectedTask.Task_state === "Open" || selectedTask.Task_state === "Done") && hasGroupPermission ? (
                     <select name="Task_plan" value={taskData.Task_plan} onChange={handlePlanSelection}>
                       <option value="">Select Plan</option>
                       {plans.map(plan => (
@@ -544,14 +566,14 @@ const AppPage = ({ currentUser }) => {
                       ))}
                     </select>
                   ) : (
-                    <input type="text" value={selectedTask.Task_plan || "No Plan"} readOnly />
+                    <input type="text" value={selectedTask?.Task_plan || "No Plan"} readOnly />
                   )}
 
                   <label>Plan Start Date:</label>
-                  <input type="text" value={selectedTask.Plan_startDate || ""} readOnly />
+                  <input type="text" value={taskData.Task_planStartDate || ""} readOnly />
 
                   <label>Plan End Date:</label>
-                  <input type="text" value={selectedTask.Plan_endDate || ""} readOnly />
+                  <input type="text" value={taskData.Task_planEndDate || ""} readOnly />
                 </div>
 
                 {/* Conditional rendering for buttons */}
