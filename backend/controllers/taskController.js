@@ -1,6 +1,7 @@
 const db = require("../models/db")
 const { getUTCPlus8Timestamp } = require("../utils/timestamp")
 const nodemailer = require("nodemailer")
+const { body, validationResult } = require("express-validator")
 
 // Configure Nodemailer with Ethereal Email
 const transporter = nodemailer.createTransport({
@@ -12,25 +13,58 @@ const transporter = nodemailer.createTransport({
   }
 })
 
+exports.createApplicationValidationRules = [
+  body("App_Acronym").notEmpty().withMessage("Application Acronym is mandatory.").isAlphanumeric().withMessage("Application Acronym must be alphanumeric."),
+  body("App_Rnumber")
+    .notEmpty()
+    .withMessage("App_Rnumber is required.")
+    .matches(/^ *[0-9]+$/)
+    .withMessage("App_Rnumber must be a positive integer and cannot contain internal spaces.")
+    .custom(value => {
+      const trimmedValue = value.trim()
+      if (trimmedValue === "00" || Number(trimmedValue) < 0) {
+        throw new Error("App_Rnumber cannot be 00 or a negative number.")
+      }
+      return true
+    }),
+  body("App_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid date format for start date."),
+  body("App_endDate").notEmpty().withMessage("End date is required.").isISO8601().withMessage("Invalid date format for end date."),
+  body("App_Description").optional().isString().withMessage("Application Description must be a string."),
+  body("App_permit_Open").notEmpty().withMessage("App_permit_Open is required.").isString().withMessage("App_permit_Open must be a string."),
+  body("App_permit_toDoList").notEmpty().withMessage("App_permit_toDoList is required.").isString().withMessage("App_permit_toDoList must be a string."),
+  body("App_permit_Doing").notEmpty().withMessage("App_permit_Doing is required.").isString().withMessage("App_permit_Doing must be a string."),
+  body("App_permit_Done").notEmpty().withMessage("App_permit_Done is required.").isString().withMessage("App_permit_Done must be a string."),
+  body("App_permit_Create").notEmpty().withMessage("App_permit_Create is required.").isString().withMessage("App_permit_Create must be a string.")
+]
+
 // Create a new application (Project Lead)
-exports.createApplication = async (req, res) => {
-  const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+exports.createApplication = [
+  exports.createApplicationValidationRules,
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: errors.array().map(error => ({ msg: error.msg }))
+      })
+    }
 
-  console.log("Received data:", req.body)
+    const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
 
-  const query = `
-    INSERT INTO APPLICATION 
-    (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    const query = `
+      INSERT INTO APPLICATION 
+      (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-  try {
-    await db.query(query, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create])
-    res.send({ message: "Application created successfully." })
-  } catch (error) {
-    console.error("Error creating application:", error)
-    res.status(500).send({ error: "Error creating application. Please try again later." })
+    try {
+      await db.query(query, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create])
+      res.status(201).json({ message: "Application created successfully." })
+    } catch (error) {
+      console.error("Error creating application:", error)
+      res.status(500).json({ error: "An error occurred while creating the application. Please try again later." })
+    }
   }
-}
+]
 
 // Update an existing application (Project Lead)
 exports.updateApplication = async (req, res) => {

@@ -125,28 +125,42 @@ const TaskManagementSystem = () => {
 
   const handleSubmit = async () => {
     try {
+      // Perform basic client-side validation if needed
       if (!formData.App_Acronym) {
         setError("App_Acronym cannot be empty.")
         return
       }
 
+      let response
       if (editMode) {
-        await axios.put("http://localhost:3000/update-application", {
+        response = await axios.put("http://localhost:3000/update-application", {
           ...formData,
-          originalAppAcronym // Pass the original App_Acronym
+          originalAppAcronym // Pass the original App_Acronym for updates
         })
       } else {
-        await axios.post("http://localhost:3000/create-application", formData)
+        response = await axios.post("http://localhost:3000/create-application", formData)
       }
-      handleCloseModal()
-      const response = await axios.get("http://localhost:3000/applications")
-      setApplications(response.data)
+      handleCloseModal() // Close the modal on success
+      const fetchResponse = await axios.get("http://localhost:3000/applications") // Refresh applications list
+      setApplications(fetchResponse.data)
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error)
-      } else if (err.response && err.response.status === 409) {
-        setError("The App_Acronym already exists. Please use a different value.")
+      // Check if error response contains validation errors
+      if (err.response && err.response.data) {
+        const errorData = err.response.data
+
+        // Handle validation error
+        if (errorData.details && Array.isArray(errorData.details)) {
+          // Map through the error details and set them as a single string or show them individually
+          const errorMessages = errorData.details.map(detail => detail.msg).join(". ")
+          setError(errorMessages)
+        } else if (errorData.error) {
+          // Handle general error messages
+          setError(errorData.error)
+        } else {
+          setError("An unexpected error occurred.")
+        }
       } else {
+        // Fallback for network or other unexpected errors
         setError("An unexpected error occurred.")
       }
     }
