@@ -327,6 +327,54 @@ ${existingTask.Task_notes || ""}
       return res.status(404).send("Task not found or cannot be completed.")
     }
 
+    // Retrieve permitted groups for the "Done" state using App_permit_done
+    const [[{ group }]] = await db.execute("SELECT App_permit_Done AS `group` FROM application WHERE App_Acronym = ?", [app_acronym])
+
+    if (!group) {
+      console.warn("No permitted group found for the app.")
+      return res.status(200).send("Task completed successfully, but no notifications were sent.")
+    }
+
+    // Retrieve users in the specified group(s)
+    const [userarray] = await db.execute({ sql: "SELECT username FROM UserGroup WHERE user_group = ?", rowsAsArray: true }, [group])
+
+    if (userarray.length === 0) {
+      console.warn("No users found in the specified group(s).")
+      return res.status(200).send("Task completed successfully, but no notifications were sent.")
+    }
+
+    // Retrieve email addresses of the users
+    const [emails] = await db.execute(
+      {
+        sql: `SELECT DISTINCT email FROM accounts WHERE username IN (${userarray
+          .flat()
+          .map(() => "?")
+          .join(",")})`,
+        rowsAsArray: true
+      },
+      userarray.flat()
+    )
+
+    // Send email notification if there are valid email addresses
+    if (emails.flat().filter(email => email !== "").length) {
+      transporter.sendMail(
+        {
+          from: "tms@tms.com",
+          to: emails.flat(),
+          subject: `Task ${Task_id} has been moved to Done`,
+          text: `The task with ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. Please review if further action is required.`
+        },
+        (error, info) => {
+          if (error) {
+            console.error("Error sending email:", error)
+          } else {
+            console.log("Email sent: %s", info.messageId)
+            console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info))
+          }
+        }
+      )
+    }
+
     res.status(200).send("Task completed successfully.")
   } catch (error) {
     console.error("Error completing task:", error)
@@ -381,7 +429,7 @@ exports.rejectTask = async (req, res) => {
   const { Task_id, newPlan } = req.body // Accept newPlan as part of the request body
   const newState = "Doing"
   const currentState = "Done"
-  const Task_owner = req.user?.username || "unknown"
+  const Task_owner = req.user?.username || "unknown" // This will still be logged for notes but not update ownership
 
   try {
     // Retrieve existing task notes and state before updating
@@ -407,13 +455,13 @@ TASK REJECTED [${Task_owner}, demoted from '${currentState}' state to '${newStat
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the task state, notes, owner, and optionally the plan
+    // Update the task state, notes, and optionally the plan, without changing the owner
     const query = `
       UPDATE Task 
-      SET Task_owner = ?, Task_state = ?, Task_notes = ? ${planUpdateQuery}
+      SET Task_state = ?, Task_notes = ? ${planUpdateQuery}
       WHERE Task_id = ? AND Task_state = ?
     `
-    const [result] = await db.execute(query, [Task_owner, newState, newNotes, ...planUpdateValues, Task_id, currentState])
+    const [result] = await db.execute(query, [newState, newNotes, ...planUpdateValues, Task_id, currentState])
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or cannot be rejected.")
