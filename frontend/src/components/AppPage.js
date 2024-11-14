@@ -190,9 +190,9 @@ const AppPage = ({ currentUser }) => {
       Task_name: "",
       Task_owner: currentUser.username,
       Task_description: "",
-      Task_plan: "",
-      Task_planStartDate: "",
-      Task_planEndDate: ""
+      Task_plan: "", // Clear the plan selection
+      Task_planStartDate: "", // Clear the plan start date
+      Task_planEndDate: "" // Clear the plan end date
     })
     setLogs([])
     setError("")
@@ -201,8 +201,19 @@ const AppPage = ({ currentUser }) => {
 
   const handleCloseTaskViewModal = () => {
     setShowTaskViewModal(false)
-    setSelectedTask(null) // Clear selected task when closing
-    setTaskData(prevData => ({ ...prevData, newNote: "" })) // Clear any new notes
+    setSelectedTask(null) // Clear selected task
+    setTaskData({
+      Task_creator: currentUser.username,
+      Task_createDate: new Date().toLocaleDateString(),
+      Task_state: "Open",
+      Task_name: "",
+      Task_owner: currentUser.username,
+      Task_description: "",
+      Task_plan: "", // Clear the plan selection
+      Task_planStartDate: "", // Clear the plan start date
+      Task_planEndDate: "" // Clear the plan end date
+    })
+    setError("")
   }
 
   const handleChange = e => {
