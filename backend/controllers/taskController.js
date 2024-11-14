@@ -128,27 +128,52 @@ exports.getApplications = async (req, res) => {
   }
 }
 
+exports.createPlanValidationRules = [
+  body("Plan_MVP_name").notEmpty().withMessage("Plan MVP name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan MVP name must be between 1 and 255 characters."),
+  body("Plan_app_Acronym").notEmpty().withMessage("Plan app acronym is required.").isString().withMessage("Plan app acronym must be a string."),
+  body("Plan_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid start date format."),
+  body("Plan_endDate")
+    .notEmpty()
+    .withMessage("End date is required.")
+    .isISO8601()
+    .withMessage("Invalid end date format.")
+    .custom((value, { req }) => {
+      if (new Date(value) <= new Date(req.body.Plan_startDate)) {
+        throw new Error("End date must be later than start date.")
+      }
+      return true
+    }),
+  body("Plan_color").optional().isHexColor().withMessage("Plan color must be a valid hex color.")
+]
+
 // Create a new plan (Project Manager)
-exports.createPlan = async (req, res) => {
-  const { Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color } = req.body
+exports.createPlan = [
+  exports.createPlanValidationRules,
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: errors.array().map(error => ({ msg: error.msg }))
+      })
+    }
 
-  if (!Plan_app_Acronym) {
-    return res.status(400).send("Plan_app_Acronym is required.")
+    const { Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color } = req.body
+
+    const query = `
+      INSERT INTO Plan 
+      (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) 
+      VALUES (?, ?, ?, ?, ?)`
+
+    try {
+      await db.query(query, [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color])
+      res.status(201).send("Plan created successfully.")
+    } catch (error) {
+      console.error("Error creating plan:", error)
+      res.status(500).send("Error creating plan.")
+    }
   }
-
-  const query = `
-    INSERT INTO Plan 
-    (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) 
-    VALUES (?, ?, ?, ?, ?)`
-
-  try {
-    await db.query(query, [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color])
-    res.status(201).send("Plan created successfully.")
-  } catch (error) {
-    console.error("Error creating plan:", error)
-    res.status(500).send("Error creating plan.")
-  }
-}
+]
 
 // Get plans for a specified application (All Roles)
 exports.getPlans = async (req, res) => {
@@ -175,46 +200,56 @@ exports.getPlans = async (req, res) => {
   }
 }
 
+exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is required.").isLength({ max: 255 }).withMessage("Task name must not exceed 255 characters."), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
+
 // Create a new task (Project Lead)
-exports.createTask = async (req, res) => {
-  const { Task_plan, Task_name, Task_description = "", Task_creator, Task_owner, Task_createDate, App_Acronym } = req.body
+exports.createTask = [
+  exports.createTaskValidationRules,
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: errors.array().map(error => ({ msg: error.msg }))
+      })
+    }
 
-  const Task_app_Acronym = App_Acronym
+    const { Task_plan, Task_name, Task_description = "", Task_creator, Task_owner, Task_createDate, App_Acronym } = req.body
 
-  if (!Task_app_Acronym || !Task_name || !Task_creator || !Task_owner || !Task_createDate) {
-    return res.status(400).send("Required fields are missing.")
+    const Task_app_Acronym = App_Acronym
+
+    try {
+      // Count existing tasks to determine new Task_Rnumber
+      const countQuery = `SELECT COUNT(*) AS taskCount FROM Task WHERE Task_app_Acronym = ?`
+      const [rows] = await db.query(countQuery, [Task_app_Acronym])
+      const taskCount = rows[0].taskCount || 0
+      const Task_Rnumber = taskCount + 1
+      const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
+
+      // Format the date to remove the time component (assuming Task_createDate is in a valid date string format)
+      const formattedCreateDate = new Date(Task_createDate).toISOString().split("T")[0]
+
+      const initialTaskState = "Open"
+      const timestamp = getUTCPlus8Timestamp()
+      const formattedNote = `*************\nTASK CREATED [${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]\n`
+
+      const query = `
+        INSERT INTO Task 
+        (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+      const values = [Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, formattedNote, initialTaskState, Task_creator, Task_owner, formattedCreateDate]
+
+      await db.query(query, values)
+
+      console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=${initialTaskState}, Created by=${Task_creator}, Date=${formattedCreateDate}`)
+      res.status(201).send("Task created successfully.")
+    } catch (error) {
+      console.error("Error creating task:", error)
+      res.status(500).send("Error creating task.")
+    }
   }
-
-  try {
-    const countQuery = `SELECT COUNT(*) AS taskCount FROM Task WHERE Task_app_Acronym = ?`
-    const [rows] = await db.query(countQuery, [Task_app_Acronym])
-    const taskCount = rows[0].taskCount || 0
-    const Task_Rnumber = taskCount + 1
-    const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
-
-    // Format the date to remove the time component (assuming Task_createDate is in a valid date string format)
-    const formattedCreateDate = new Date(Task_createDate).toISOString().split("T")[0]
-
-    const initialTaskState = "Open"
-    const timestamp = getUTCPlus8Timestamp()
-    const formattedNote = `*************\nTASK CREATED [${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]\n`
-
-    const query = `
-      INSERT INTO Task 
-      (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-
-    const values = [Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, formattedNote, initialTaskState, Task_creator, Task_owner, formattedCreateDate]
-
-    await db.query(query, values)
-
-    console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=${initialTaskState}, Created by=${Task_creator}, Date=${formattedCreateDate}`)
-    res.status(201).send("Task created successfully.")
-  } catch (error) {
-    console.error("Error creating task:", error)
-    res.status(500).send("Error creating task.")
-  }
-}
+]
 
 exports.releaseTask = async (req, res) => {
   const { Task_id, App_Acronym } = req.body
@@ -503,12 +538,13 @@ exports.rejectTask = async (req, res) => {
       return res.status(404).send("Task not found or cannot be rejected.")
     }
 
-    // Check if a plan change is requested and update it
+    // Determine plan update logic based on newPlan
     let planUpdateQuery = ""
     let planUpdateValues = []
-    if (newPlan && newPlan !== existingTask.Task_plan) {
+    if (newPlan !== undefined) {
+      // If newPlan is explicitly provided, update it (even if it's empty)
       planUpdateQuery = ", Task_plan = ?"
-      planUpdateValues.push(newPlan)
+      planUpdateValues.push(newPlan || null) // Set to NULL if empty to remove the Task_plan
     }
 
     // Append new notes
@@ -523,8 +559,7 @@ ${existingTask.Task_notes || ""}
     const query = `
       UPDATE Task 
       SET Task_state = ?, Task_notes = ? ${planUpdateQuery}
-      WHERE Task_id = ? AND Task_state = ?
-    `
+      WHERE Task_id = ? AND Task_state = ?`
     const [result] = await db.execute(query, [newState, newNotes, ...planUpdateValues, Task_id, currentState])
 
     if (result.affectedRows === 0) {

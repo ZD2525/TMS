@@ -230,25 +230,21 @@ const AppPage = ({ currentUser }) => {
     const { name, value } = e.target
     setTaskData(prevData => ({ ...prevData, [name]: value }))
   }
+
   const handlePlanSelection = e => {
     const selectedPlan = plans.find(plan => plan.Plan_MVP_name === e.target.value)
     const newPlanName = selectedPlan ? selectedPlan.Plan_MVP_name : ""
 
-    // If no selected task (creating a new task), update directly
-    if (!selectedTask) {
-      setTaskData(prevData => ({
-        ...prevData,
-        Task_plan: newPlanName,
-        Task_planStartDate: selectedPlan?.Plan_startDate ? new Date(selectedPlan.Plan_startDate).toISOString().split("T")[0] : "",
-        Task_planEndDate: selectedPlan?.Plan_endDate ? new Date(selectedPlan.Plan_endDate).toISOString().split("T")[0] : ""
-      }))
-      return
-    }
+    // Check if the new plan is different from the existing plan
+    const isPlanChanged = newPlanName !== selectedTask?.Task_plan
 
-    // For existing tasks, update task data and check if the plan has changed
-    setHasPlanChanged(selectedPlan && selectedPlan.Plan_MVP_name !== selectedTask.Task_plan)
+    // Handle changing to an empty plan ("SELECT PLAN")
+    const isEmptyPlan = !newPlanName
 
-    // Update taskData to reflect the change for an existing task
+    // Update state to reflect the change for an existing task
+    setHasPlanChanged(isPlanChanged || isEmptyPlan)
+
+    // Update taskData to reflect the change
     setTaskData(prevData => ({
       ...prevData,
       Task_plan: newPlanName,
@@ -266,7 +262,13 @@ const AppPage = ({ currentUser }) => {
       handleClosePlanModal()
       fetchPlans() // Refresh the list of plans
     } catch (err) {
-      setError(err.response?.data?.error || "An unexpected error occurred.")
+      if (err.response && err.response.data && Array.isArray(err.response.data.details)) {
+        // Display validation errors
+        const errorMessages = err.response.data.details.map(detail => detail.msg).join(". ")
+        setError(errorMessages)
+      } else {
+        setError(err.response?.data?.error || "An unexpected error occurred.")
+      }
     }
   }
 
@@ -281,13 +283,16 @@ const AppPage = ({ currentUser }) => {
         ...taskData,
         App_Acronym: appAcronym
       })
-      if (response.data && response.data.log) {
-        setLogs(prevLogs => [response.data.log, ...prevLogs])
-      }
       handleCloseTaskModal() // Close the modal after successful creation
       await fetchTasks() // Refresh the task list to show the new task
     } catch (err) {
-      setError(err.response?.data?.error || "An unexpected error occurred.")
+      if (err.response && err.response.data && Array.isArray(err.response.data.details)) {
+        // Display validation errors
+        const errorMessages = err.response.data.details.map(detail => detail.msg).join(". ")
+        setError(errorMessages)
+      } else {
+        setError(err.response?.data?.error || "An unexpected error occurred.")
+      }
     }
   }
 
@@ -603,12 +608,14 @@ const AppPage = ({ currentUser }) => {
                     {selectedTask.Task_state === "Doing" && hasGroupPermission && <button onClick={handleReviewTask}>Review</button>}
 
                     {/* Check for Done state and group permission for approval */}
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && <button onClick={handleApproveTask}>Approve</button>}
+                    {/* Check for Done state, group permission for approval, and that there is a valid Task_plan */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && !hasPlanChanged && selectedTask.Task_plan && <button onClick={handleApproveTask}>Approve</button>}
 
-                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>Reject {hasPlanChanged ? "with Plan Change" : ""}</button>}
+                    {/* Show the reject button - if plan changed or Task_plan is empty, display "Reject with Plan Change" */}
+                    {selectedTask.Task_state === "Done" && hasGroupPermission && <button onClick={handleRejectTask}>{hasPlanChanged || !selectedTask.Task_plan ? "Reject with Plan Change" : "Reject"}</button>}
 
-                    {/* Only show the Save button if there is no plan change */}
-                    {taskPermissions.length > 0 && !hasPlanChanged && <button onClick={handleSaveNotes}>Save</button>}
+                    {/* Only show the Save button if there is no plan change and Task_plan is valid */}
+                    {taskPermissions.length > 0 && !hasPlanChanged && selectedTask.Task_plan && <button onClick={handleSaveNotes}>Save</button>}
 
                     {/* Cancel button */}
                     <button onClick={() => setShowTaskViewModal(false)}>Cancel</button>
