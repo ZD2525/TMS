@@ -685,10 +685,10 @@ exports.saveTaskNotes = async (req, res) => {
       return res.status(404).send("Task not found.")
     }
 
-    // Prepare audit entry
+    // Prepare audit entry using the utility function for GMT+8 conversion
     const username = req.body.username || "unknown"
     const state = existingTask.Task_state || "Unknown"
-    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const timestamp = getUTCPlus8Timestamp() // Use your utility function for timestamp
     const auditEntry = `[${username}, ${state}, ${timestamp}]`
 
     // Prepare note entries
