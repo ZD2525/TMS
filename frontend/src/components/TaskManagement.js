@@ -26,43 +26,8 @@ const TaskManagementSystem = () => {
   })
   const [userGroups, setUserGroups] = useState([])
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("") // State to manage success message
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/applications")
-        setApplications(response.data)
-      } catch (error) {
-        console.error("Error fetching applications:", error)
-      }
-    }
-
-    const checkUserRole = async () => {
-      try {
-        const response = await axios.post("http://localhost:3000/checkgroup", { group: "PL" })
-        if (response.data.success) {
-          setUserRole("PL")
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error)
-      }
-    }
-
-    const fetchUserGroups = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/groups")
-        setUserGroups(response.data)
-      } catch (error) {
-        console.error("Error fetching user groups:", error)
-        setUserGroups([])
-      }
-    }
-
-    fetchApplications()
-    checkUserRole()
-    fetchUserGroups()
-  }, [])
 
   const handleCreateApplication = () => {
     setShowCreateModal(true)
@@ -128,6 +93,7 @@ const TaskManagementSystem = () => {
       // Perform basic client-side validation if needed
       if (!formData.App_Acronym) {
         setError("App_Acronym cannot be empty.")
+        setTimeout(() => setError(""), 2000) // Clear error after 2 seconds
         return
       }
 
@@ -143,6 +109,8 @@ const TaskManagementSystem = () => {
       handleCloseModal() // Close the modal on success
       const fetchResponse = await axios.get("http://localhost:3000/applications") // Refresh applications list
       setApplications(fetchResponse.data)
+      setSuccessMessage(editMode ? "Application updated successfully." : "Application created successfully.") // Set success message
+      setTimeout(() => setSuccessMessage(""), 2000) // Clear success message after 2 seconds
     } catch (err) {
       // Check if error response contains validation errors
       if (err.response && err.response.data) {
@@ -163,6 +131,7 @@ const TaskManagementSystem = () => {
         // Fallback for network or other unexpected errors
         setError("An unexpected error occurred.")
       }
+      setTimeout(() => setError(""), 2000) // Clear error after 2 seconds
     }
   }
 
@@ -170,9 +139,46 @@ const TaskManagementSystem = () => {
     navigate("/app", { state: { appAcronym: app.App_Acronym } })
   }
 
+  const fetchApplications = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/applications")
+      setApplications(response.data)
+    } catch (error) {
+      console.error("Error fetching applications:", error)
+    }
+  }
+
+  const checkUserRole = async () => {
+    try {
+      const response = await axios.post("http://localhost:3000/checkgroup", { group: "PL" })
+      if (response.data.success) {
+        setUserRole("PL")
+      }
+    } catch (error) {
+      console.error("Error checking user role:", error)
+    }
+  }
+
+  const fetchUserGroups = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/groups")
+      setUserGroups(response.data)
+    } catch (error) {
+      console.error("Error fetching user groups:", error)
+      setUserGroups([])
+    }
+  }
+
+  useEffect(() => {
+    fetchApplications()
+    checkUserRole()
+    fetchUserGroups()
+  }, [])
+
   return (
     <div className="task-management-system">
       <h2>Applications</h2>
+      {successMessage && <div className="success-box">{successMessage}</div>} {/* Success message box */}
       {userRole === "PL" && (
         <button onClick={handleCreateApplication} className="create-app-button">
           Create App
@@ -221,7 +227,6 @@ const TaskManagementSystem = () => {
           <p>No applications available</p>
         )}
       </div>
-
       <Modal isOpen={showCreateModal} onRequestClose={handleCloseModal} contentLabel={editMode ? "Edit Application Modal" : "Create Application Modal"} className="app-modal-content" overlayClassName="app-modal-overlay">
         <h2>{editMode ? "Edit App" : "Create App"}</h2>
         {error && <div className="error-box">{error}</div>}

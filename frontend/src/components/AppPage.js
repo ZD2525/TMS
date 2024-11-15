@@ -30,6 +30,7 @@ const AppPage = ({ currentUser }) => {
   })
   const [selectedTask, setSelectedTask] = useState(null)
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
   const [logs, setLogs] = useState([])
   const [hasGroupPermission, setHasGroupPermission] = useState(false)
 
@@ -89,16 +90,6 @@ const AppPage = ({ currentUser }) => {
       return false
     }
   }
-
-  useEffect(() => {
-    fetchTasks() // Call fetchTasks on component mount
-    fetchPlans()
-  }, [appAcronym])
-
-  useEffect(() => {
-    // Fetch currentUser data here if needed
-    console.log("Current User Data:", currentUser)
-  }, [currentUser])
 
   const handleOpenPlanModal = () => {
     setShowPlanModal(true)
@@ -261,6 +252,8 @@ const AppPage = ({ currentUser }) => {
       })
       handleClosePlanModal()
       fetchPlans() // Refresh the list of plans
+      setSuccessMessage("Plan created successfully.") // Set success message
+      setTimeout(() => setSuccessMessage(""), 2000) // Clear success message after 2 seconds
     } catch (err) {
       if (err.response && err.response.data && Array.isArray(err.response.data.details)) {
         // Display validation errors
@@ -269,12 +262,14 @@ const AppPage = ({ currentUser }) => {
       } else {
         setError(err.response?.data?.error || "An unexpected error occurred.")
       }
+      setTimeout(() => setError(""), 2000) // Clear error after 2 seconds
     }
   }
 
   const handleCreateTask = async () => {
     if (!taskData.Task_name) {
       setError("Task name is required.")
+      clearErrorAfterDelay()
       return
     }
 
@@ -285,6 +280,8 @@ const AppPage = ({ currentUser }) => {
       })
       handleCloseTaskModal() // Close the modal after successful creation
       await fetchTasks() // Refresh the task list to show the new task
+      setSuccessMessage("Task created successfully.") // Set success message
+      setTimeout(() => setSuccessMessage(""), 2000) // Clear success message after 2 seconds
     } catch (err) {
       if (err.response && err.response.data && Array.isArray(err.response.data.details)) {
         // Display validation errors
@@ -293,7 +290,14 @@ const AppPage = ({ currentUser }) => {
       } else {
         setError(err.response?.data?.error || "An unexpected error occurred.")
       }
+      clearErrorAfterDelay() // Clear error after 2 seconds
     }
+  }
+
+  const clearErrorAfterDelay = () => {
+    setTimeout(() => {
+      setError("")
+    }, 2000)
   }
 
   const handleReleaseTask = async () => {
@@ -448,9 +452,20 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
+  useEffect(() => {
+    fetchTasks() // Call fetchTasks on component mount
+    fetchPlans()
+  }, [appAcronym])
+
+  useEffect(() => {
+    // Fetch currentUser data here if needed
+    console.log("Current User Data:", currentUser)
+  }, [currentUser])
+
   return (
     <div className="app-page">
       <h3>{appAcronym}</h3>
+      {successMessage && <div className="success-box">{successMessage}</div>}
       <button onClick={handleOpenPlanModal} className="create-plan-button">
         Create Plan
       </button>

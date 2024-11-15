@@ -58,7 +58,7 @@ exports.createApplication = [
 
     try {
       await db.query(query, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create])
-      res.status(201).json({ message: "Application created successfully." })
+      res.json({ message: "Application created successfully." })
     } catch (error) {
       console.error("Error creating application:", error)
       res.status(500).json({ error: "An error occurred while creating the application. Please try again later." })
@@ -69,8 +69,6 @@ exports.createApplication = [
 // Update an existing application (Project Lead)
 exports.updateApplication = async (req, res) => {
   const { originalAppAcronym, App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
-
-  console.log("Update request received with data:", req.body)
 
   // Validation for empty App_Acronym
   if (!App_Acronym) {
@@ -100,9 +98,7 @@ exports.updateApplication = async (req, res) => {
         UPDATE task
         SET Task_id = CONCAT(?, SUBSTRING(Task_id, CHAR_LENGTH(?) + 1))
         WHERE Task_id LIKE CONCAT(?, '_%')`
-      console.log(`Updating Task_id from ${originalAppAcronym} to ${App_Acronym}`)
       const [result] = await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
-      console.log(`Number of tasks updated: ${result.affectedRows}`)
     }
 
     await connection.commit()
@@ -167,7 +163,7 @@ exports.createPlan = [
 
     try {
       await db.query(query, [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color])
-      res.status(201).send("Plan created successfully.")
+      res.send("Plan created successfully.")
     } catch (error) {
       console.error("Error creating plan:", error)
       res.status(500).send("Error creating plan.")
@@ -242,8 +238,7 @@ exports.createTask = [
 
       await db.query(query, values)
 
-      console.log(`Task Created: ID=${Task_id}, Name=${Task_name}, State=${initialTaskState}, Created by=${Task_creator}, Date=${formattedCreateDate}`)
-      res.status(201).send("Task created successfully.")
+      res.send("Task created successfully.")
     } catch (error) {
       console.error("Error creating task:", error)
       res.status(500).send("Error creating task.")
@@ -508,8 +503,7 @@ ${existingTask.Task_notes || ""}
           if (error) {
             console.error("Error sending email:", error)
           } else {
-            console.log("Email sent: %s", info.messageId)
-            console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info))
+            console.res.send("success")
           }
         }
       )
@@ -527,7 +521,7 @@ exports.approveTask = async (req, res) => {
   const { Task_id } = req.body
   const newState = "Closed"
   const currentState = "Done"
-  const Task_owner = req.user?.username || "unknown"
+  const Task_owner = req.user?.username
 
   try {
     // Retrieve existing task notes before updating
@@ -744,7 +738,7 @@ exports.saveTaskNotes = async (req, res) => {
       return res.status(404).send("Task not found or unable to update notes.")
     }
 
-    res.status(200).send("Task notes and plan updated successfully.")
+    res.send("Task notes and plan updated successfully.")
   } catch (error) {
     console.error("Error updating task notes:", error)
     res.status(500).send("Server error, unable to update notes.")
