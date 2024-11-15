@@ -566,13 +566,13 @@ const AppPage = ({ currentUser }) => {
                   <label>Plan End Date:</label>
                   <input type="text" value={taskData.Task_planEndDate || ""} readOnly />
                 </div>
-                <button onClick={handleCreateTask}>Create</button>
-                <button onClick={handleCloseTaskModal}>Cancel</button>
               </div>
 
               <div className="task-logs-section">
                 <h3>Logs</h3>
                 <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
+                <button onClick={handleCreateTask}>Create</button>
+                <button onClick={handleCloseTaskModal}>Cancel</button>
               </div>
             </div>
           </div>
