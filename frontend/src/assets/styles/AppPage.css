@@ -123,16 +123,32 @@ h3 {
 
 /* Create Plan Modal */
 .create-plan-modal-content {
-  background: white;
-  padding: 15px; /* Reduced padding */
+  background: white; /* Ensure a white background */
+  padding: 15px;
   border-radius: 5px;
   max-width: 800px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
+  z-index: 1100; /* Higher z-index than overlay */
+}
+
+/* Create Plan Modal */
+.create-plan-modal-content button {
+  width: auto; /* Adjust the width as per your requirement */
+  margin: 5px;
+  padding: 6px 12px; /* Optionally adjust padding if needed */
+  font-size: 13px; /* Optionally adjust font size */
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+}
+
+.create-plan-modal-content button:hover {
+  background-color: #0056b3;
 }
 
 .create-plan-error-box {
