@@ -246,7 +246,7 @@ const TaskManagementSystem = () => {
                 name="App_Rnumber"
                 value={formData.App_Rnumber}
                 onChange={handleChange}
-                disabled // RNumber is always disabled
+                disabled={editMode} // Make it readonly only in edit mode
               />
             </label>
           </div>

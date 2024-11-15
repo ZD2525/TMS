@@ -52,12 +52,24 @@ nav span {
 .header-buttons button {
   padding: 8px 12px;
   font-size: 14px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
+  background-color: #007bff; /* Change default button color */
+  color: white; /* Add white text color for contrast */
+  border: 1px solid #007bff;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .header-buttons button:hover {
-  background-color: #e0e0e0;
+  background-color: #0056b3; /* Darken on hover */
+}
+
+/* Specific style for the Logout button */
+.header-buttons button:last-child {
+  background-color: #ff4c4c; /* Example red color for Logout button */
+  color: white;
+  border: 1px solid #ff4c4c;
+}
+
+.header-buttons button:last-child:hover {
+  background-color: #cc0000; /* Darker shade of red for hover */
 }

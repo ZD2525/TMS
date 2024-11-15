@@ -346,6 +346,47 @@ ${existingTask.Task_notes || ""}
   }
 }
 
+// // Unassign Task (Developer)
+// exports.unassignTask = async (req, res) => {
+//   const { Task_id } = req.body
+//   const newState = "To-Do"
+//   const currentState = "Doing"
+//   const Task_owner = req.user?.username || "unknown"
+
+//   try {
+//     // Retrieve existing task notes before updating
+//     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
+
+//     if (!existingTask) {
+//       return res.status(404).send("Task not found or cannot be unassigned.")
+//     }
+
+//     // Append new notes
+//     const timestamp = getUTCPlus8Timestamp()
+//     const newNotes = `
+// *************
+// TASK UNASSIGNED [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+
+// ${existingTask.Task_notes || ""}
+//     `
+
+//     // Update the task state, notes, and reset owner
+//     const query = `
+//       UPDATE Task
+//       SET Task_owner = NULL, Task_state = ?, Task_notes = ?
+//       WHERE Task_id = ? AND Task_state = ?`
+//     const [result] = await db.execute(query, [newState, newNotes, Task_id, currentState])
+
+//     if (result.affectedRows === 0) {
+//       return res.status(404).send("Task not found or cannot be unassigned.")
+//     }
+
+//     res.send("Task unassigned successfully.")
+//   } catch (error) {
+//     console.error("Error unassigning task:", error)
+//     res.status(500).send("Error unassigning task.")
+//   }
+// }
 // Unassign Task (Developer)
 exports.unassignTask = async (req, res) => {
   const { Task_id } = req.body
@@ -354,8 +395,8 @@ exports.unassignTask = async (req, res) => {
   const Task_owner = req.user?.username || "unknown"
 
   try {
-    // Retrieve existing task notes before updating
-    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
+    // Retrieve existing task notes and state before updating
+    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state, Task_owner FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
 
     if (!existingTask) {
       return res.status(404).send("Task not found or cannot be unassigned.")
@@ -370,10 +411,10 @@ TASK UNASSIGNED [${Task_owner}, demoted from '${currentState}' state to '${newSt
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the task state, notes, and reset owner
+    // Update the task state and notes only, keeping the current owner
     const query = `
       UPDATE Task 
-      SET Task_owner = NULL, Task_state = ?, Task_notes = ? 
+      SET Task_state = ?, Task_notes = ? 
       WHERE Task_id = ? AND Task_state = ?`
     const [result] = await db.execute(query, [newState, newNotes, Task_id, currentState])
 

@@ -16,7 +16,7 @@ h3 {
 .create-plan-button,
 .create-task-button {
   margin: 10px;
-  padding: 12px 20px;
+  padding: 10px 16px; /* Slightly reduced padding */
   background-color: #007bff;
   color: white;
   border: none;
@@ -123,7 +123,7 @@ h3 {
 
 .modal-content {
   background: white;
-  padding: 20px;
+  padding: 15px; /* Reduced padding */
   border-radius: 5px;
   max-width: 1000px;
   width: 90%;
@@ -143,7 +143,7 @@ h3 {
 .task-modal-container {
   display: flex;
   flex-direction: row;
-  gap: 20px;
+  gap: 15px; /* Reduced gap for compactness */
   width: 100%;
   height: 100%;
 }
@@ -152,72 +152,96 @@ h3 {
 .task-logs-section {
   flex: 0 0 50%; /* Equally distribute the space */
   overflow-y: auto;
-  padding: 10px; /* Add some padding for better spacing */
+  padding: 8px; /* Reduced padding */
+}
+
+.task-creation-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-header {
+  margin-bottom: 8px;
+  font-size: 16px; /* Slightly reduced font size */
+  font-weight: bold;
 }
 
 .task-logs-section {
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Ensure logs and notes container are spaced out */
+  justify-content: flex-start; /* Align logs to the top */
   height: 100%;
+  padding: 10px;
+}
+
+.task-notes {
+  flex-grow: 1; /* Allow logs to grow and occupy available space */
+  max-height: 300px; /* Set maximum height for logs to be scrollable */
+  overflow-y: auto;
+  margin-bottom: 10px;
 }
 
 .task-notes-container {
-  margin-top: 10px;
+  margin-top: auto; /* Pushes the notes input to the bottom of the container */
   display: flex;
   flex-direction: column;
   width: 100%;
+  border-top: 1px solid #ccc; /* Optional border to visually separate notes */
+  padding-top: 8px;
 }
 
 textarea {
   width: 100%;
   resize: vertical;
-  min-height: 60px;
+  min-height: 50px; /* Reduced min-height */
 }
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; /* Aligns buttons to the right */
   gap: 10px;
   margin-top: 10px;
+  padding-right: 20px; /* Optional padding for spacing from the right edge */
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 8px; /* Reduced margin for tighter spacing */
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 3px; /* Reduce margin below labels */
+  font-size: 13px; /* Adjust font size for labels */
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px;
+  padding: 6px 8px; /* Reduced padding */
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  font-size: 13px; /* Adjust font size */
 }
 
 .form-group input[type="color"] {
   width: 30%; /* Adjust width for alignment with other fields */
-  height: 30px; /* Match height with other fields */
+  height: 28px; /* Match height with other fields */
   padding: 0;
   border: none;
   border-radius: 4px;
   margin: 0;
   box-shadow: inset 0 0 0 1px #ccc;
   display: inline-block;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 button {
-  margin-top: 10px;
-  padding: 10px 15px;
-  font-size: 14px;
+  margin-top: 8px;
+  padding: 8px 12px; /* Reduced padding for buttons */
+  font-size: 12px; /* Adjust font size */
   cursor: pointer;
   border: none;
   border-radius: 4px;
