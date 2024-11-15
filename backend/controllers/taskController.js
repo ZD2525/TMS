@@ -14,7 +14,11 @@ const transporter = nodemailer.createTransport({
 })
 
 exports.createApplicationValidationRules = [
-  body("App_Acronym").notEmpty().withMessage("Application Acronym is mandatory.").isAlphanumeric().withMessage("Application Acronym must be alphanumeric."),
+  body("App_Acronym")
+    .notEmpty()
+    .withMessage("Application Acronym is mandatory.")
+    .matches(/^[a-zA-Z0-9 ]*$/)
+    .withMessage("Application Acronym must be alphanumeric and can contain spaces."),
   body("App_Rnumber")
     .notEmpty()
     .withMessage("App_Rnumber is required.")
