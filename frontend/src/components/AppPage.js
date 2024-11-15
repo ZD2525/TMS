@@ -498,9 +498,9 @@ const AppPage = ({ currentUser }) => {
 
       {showPlanModal && (
         <div className="modal-overlay" onClick={handleClosePlanModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="create-plan-modal-content" onClick={e => e.stopPropagation()}>
             <h2>Create Plan</h2>
-            {error && <div className="error-box">{error}</div>}
+            {error && <div className="create-plan-error-box">{error}</div>}
             <div className="form-group">
               <label>
                 Plan Name:
@@ -527,11 +527,11 @@ const AppPage = ({ currentUser }) => {
 
       {showTaskModal && (
         <div className="modal-overlay" onClick={handleCloseTaskModal}>
-          <div className="modal-content task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+          <div className="create-task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
             <div className="task-modal-container">
               <div className="task-creation-section">
                 <h2>Create Task</h2>
-                {error && <div className="error-box">{error}</div>}
+                {error && <div className="create-task-error-box">{error}</div>}
                 <div className="form-group">
                   <label>Creator:</label>
                   <input type="text" value={taskData.Task_creator} readOnly />
@@ -581,7 +581,7 @@ const AppPage = ({ currentUser }) => {
 
       {showTaskViewModal && selectedTask && (
         <div className="modal-overlay" onClick={handleCloseTaskViewModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "1200px" }}>
+          <div className="view-task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "1200px" }}>
             <div className="task-modal-container">
               {/* Task Creation / Details Section */}
               <div className="task-creation-section">
@@ -632,8 +632,6 @@ const AppPage = ({ currentUser }) => {
                 </div>
 
                 {/* Buttons for the modal footer */}
-                {/* Buttons for the modal footer with permission checks */}
-                {/* Buttons for the modal footer with permission checks */}
                 <div className="modal-footer">
                   {selectedTask && selectedTask.Task_state === "Open" && hasGroupPermission && (
                     <>
