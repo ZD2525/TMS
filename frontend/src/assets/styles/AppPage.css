@@ -226,7 +226,7 @@ h3 {
 
 .task-creation-section,
 .task-logs-section {
-  flex: 0 0 50%;
+  flex: 0 0 48%;
   overflow-y: auto;
   padding: 8px;
 }

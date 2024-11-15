@@ -569,7 +569,7 @@ const AppPage = ({ currentUser }) => {
               </div>
 
               <div className="task-logs-section">
-                <h3>Logs</h3>
+                <h2>Logs</h2>
                 <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
                 <button onClick={handleCreateTask}>Create</button>
                 <button onClick={handleCloseTaskModal}>Cancel</button>
@@ -622,7 +622,7 @@ const AppPage = ({ currentUser }) => {
 
               {/* Logs and Notes Section */}
               <div className="task-logs-section">
-                <h3>Logs</h3>
+                <h2>Logs</h2>
                 <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No logs available.</p>}</div>
 
                 {/* Notes Input Area */}
