@@ -371,6 +371,15 @@ textarea {
   font-size: 13px;
 }
 
+/* Styling for read-only fields */
+input[readonly],
+textarea[readonly],
+select[readonly] {
+  background-color: #e1e1e1 !important;
+  color: black;
+  cursor: not-allowed;
+}
+
 .form-group input[type="color"] {
   width: 30%;
   height: 28px;

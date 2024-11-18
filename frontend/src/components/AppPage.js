@@ -615,19 +615,19 @@ const AppPage = ({ currentUser }) => {
             {error && <div className="create-plan-error-box">{error}</div>}
             <div className="form-group">
               <label>
-                Plan Name:
+                Plan Name*:
                 <input type="text" name="Plan_MVP_name" value={planData.Plan_MVP_name} onChange={handleChange} />
               </label>
               <label>
-                Start Date:
+                Start Date*:
                 <input type="date" name="Plan_startDate" value={planData.Plan_startDate} onChange={handleChange} />
               </label>
               <label>
-                End Date:
+                End Date*:
                 <input type="date" name="Plan_endDate" value={planData.Plan_endDate} onChange={handleChange} />
               </label>
               <label>
-                Color:
+                Color*:
                 <input type="color" name="Plan_color" value={planData.Plan_color} onChange={handleChange} />
               </label>
             </div>
@@ -743,7 +743,7 @@ const AppPage = ({ currentUser }) => {
                 <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No logs available.</p>}</div>
 
                 {/* Conditionally render the Notes Input Area based on Task State */}
-                {selectedTask.Task_state !== "Closed" && (
+                {selectedTask.Task_state !== "Closed" && hasGroupPermission && (
                   <div className="task-notes-container">
                     <label>Notes:</label>
                     <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} placeholder="Add notes here..." />
@@ -780,11 +780,11 @@ const AppPage = ({ currentUser }) => {
                   )}
                   {selectedTask && selectedTask.Task_state === "Doing" && hasGroupPermission && (
                     <>
-                      <button className="unassign-button" onClick={handleUnassignTask}>
-                        Unassign
-                      </button>
                       <button className="review-button" onClick={handleReviewTask}>
                         Review
+                      </button>
+                      <button className="unassign-button" onClick={handleUnassignTask}>
+                        Unassign
                       </button>
                       <button className="save-button" onClick={handleSaveNotes}>
                         Save
@@ -801,14 +801,18 @@ const AppPage = ({ currentUser }) => {
                           <button className="approve-button" onClick={handleApproveTask}>
                             Approve
                           </button>
-                          <button className="save-button" onClick={handleSaveNotes}>
-                            Save
-                          </button>
                         </>
                       )}
                       <button className="reject-button" onClick={handleRejectTask}>
                         {hasPlanChanged ? "Reject" : "Reject"}
                       </button>
+                      {!hasPlanChanged && (
+                        <>
+                          <button className="save-button" onClick={handleSaveNotes}>
+                            Save
+                          </button>
+                        </>
+                      )}
                       <button className="cancel-button" onClick={handleCloseTaskViewModal}>
                         Cancel
                       </button>

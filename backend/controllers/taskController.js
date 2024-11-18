@@ -299,24 +299,37 @@ exports.createTask = [
     }
 
     const { Task_plan, Task_name, Task_description = "", Task_creator, Task_owner, Task_createDate, App_Acronym } = req.body
-
     const Task_app_Acronym = App_Acronym
 
     try {
-      // Count existing tasks to determine new Task_Rnumber
-      const countQuery = `SELECT COUNT(*) AS taskCount FROM Task WHERE Task_app_Acronym = ?`
-      const [rows] = await db.query(countQuery, [Task_app_Acronym])
-      const taskCount = rows[0].taskCount || 0
-      const Task_Rnumber = taskCount + 1
-      const Task_id = `${Task_app_Acronym}_${Task_Rnumber}`
+      // Begin transaction
+      await db.query("START TRANSACTION")
+
+      // Fetch the current App_Rnumber
+      const [appRows] = await db.query(`SELECT App_Rnumber FROM Application WHERE App_Acronym = ? FOR UPDATE`, [Task_app_Acronym])
+      if (appRows.length === 0) {
+        throw new Error("Application not found.")
+      }
+
+      let currentRnumber = appRows[0].App_Rnumber
+
+      // Increment the Rnumber
+      const newRnumber = currentRnumber + 1
+
+      // Update the App_Rnumber in the Application table
+      await db.query(`UPDATE Application SET App_Rnumber = ? WHERE App_Acronym = ?`, [newRnumber, Task_app_Acronym])
+
+      // Generate the Task_id
+      const Task_id = `${Task_app_Acronym}_${newRnumber}`
 
       // Format the date to remove the time component (assuming Task_createDate is in a valid date string format)
       const formattedCreateDate = new Date(Task_createDate).toISOString().split("T")[0]
 
       const initialTaskState = "Open"
       const timestamp = getUTCPlus8Timestamp()
-      const formattedNote = `*************\nTASK CREATED 
-      [${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]\n`
+      const formattedNote = `*************\n[${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]
+      TASK CREATED 
+      `
 
       const query = `
         INSERT INTO Task 
@@ -327,8 +340,13 @@ exports.createTask = [
 
       await db.query(query, values)
 
+      // Commit the transaction
+      await db.query("COMMIT")
+
       res.send("Task created successfully.")
     } catch (error) {
+      // Rollback transaction in case of error
+      await db.query("ROLLBACK")
       console.error("Error creating task:", error)
       res.status(500).send("Error creating task.")
     }
@@ -358,8 +376,8 @@ exports.releaseTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK RELEASED 
 [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK RELEASED 
 
 ${existingTask.Task_notes || ""}
     `
@@ -401,8 +419,8 @@ exports.assignTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK ASSIGNED 
 [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK ASSIGNED 
 
 ${existingTask.Task_notes || ""}
     `
@@ -424,48 +442,6 @@ ${existingTask.Task_notes || ""}
   }
 }
 
-// // Unassign Task (Developer)
-// exports.unassignTask = async (req, res) => {
-//   const { Task_id } = req.body
-//   const newState = "To-Do"
-//   const currentState = "Doing"
-//   const Task_owner = req.user?.username || "unknown"
-
-//   try {
-//     // Retrieve existing task notes before updating
-//     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
-
-//     if (!existingTask) {
-//       return res.status(404).send("Task not found or cannot be unassigned.")
-//     }
-
-//     // Append new notes
-//     const timestamp = getUTCPlus8Timestamp()
-//     const newNotes = `
-// *************
-// TASK UNASSIGNED [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
-
-// ${existingTask.Task_notes || ""}
-//     `
-
-//     // Update the task state, notes, and reset owner
-//     const query = `
-//       UPDATE Task
-//       SET Task_owner = NULL, Task_state = ?, Task_notes = ?
-//       WHERE Task_id = ? AND Task_state = ?`
-//     const [result] = await db.execute(query, [newState, newNotes, Task_id, currentState])
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).send("Task not found or cannot be unassigned.")
-//     }
-
-//     res.send("Task unassigned successfully.")
-//   } catch (error) {
-//     console.error("Error unassigning task:", error)
-//     res.status(500).send("Error unassigning task.")
-//   }
-// }
-
 // Unassign Task (Developer)
 exports.unassignTask = async (req, res) => {
   const { Task_id } = req.body
@@ -485,8 +461,8 @@ exports.unassignTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK UNASSIGNED 
 [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK UNASSIGNED 
 
 ${existingTask.Task_notes || ""}
     `
@@ -532,8 +508,9 @@ exports.reviewTask = async (req, res) => {
     const timestamp = new Date().toISOString().replace("T", " ").split(".")[0]
     const newNotes = `
 *************
-TASK SENT FOR REVIEW 
 [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK SENT FOR REVIEW 
+
 ${existingTask.Task_notes || ""}
     `
 
@@ -622,8 +599,8 @@ exports.approveTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK APPROVED AND CLOSED 
 [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK APPROVED AND CLOSED 
 
 ${existingTask.Task_notes || ""}
     `
@@ -673,8 +650,9 @@ exports.rejectTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK REJECTED 
 [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK REJECTED 
+
 ${existingTask.Task_notes || ""}
     `
 
@@ -759,81 +737,6 @@ exports.viewTask = async (req, res) => {
   }
 }
 
-// exports.saveTaskNotes = async (req, res) => {
-//   const { Task_id, newNote, Task_plan } = req.body
-
-//   if (!Task_id) {
-//     return res.status(400).send("Task ID is required.")
-//   }
-
-//   try {
-//     // Retrieve existing task notes and plan
-//     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_plan, Task_state FROM Task WHERE Task_id = ?", [Task_id])
-
-//     if (!existingTask) {
-//       return res.status(404).send("Task not found.")
-//     }
-
-//     // Prepare audit entry using the utility function for GMT+8 conversion
-//     const username = req.body.username || "unknown"
-//     const state = existingTask.Task_state || "Unknown"
-//     const timestamp = getUTCPlus8Timestamp() // Use your utility function for timestamp
-//     const auditEntry = `[${username}, ${state}, ${timestamp}]`
-
-//     // Prepare note entries
-//     let noteEntry = ""
-
-//     // Handle plan change note
-//     if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
-//       noteEntry += `*************\nThe Task Plan has been changed to '${Task_plan || "None"}'. ${auditEntry}`
-//     }
-
-//     // Append user-provided note if present
-//     if (newNote) {
-//       if (noteEntry) {
-//         // If there is already a noteEntry (e.g., plan change), add a new entry with a separator
-//         noteEntry += `\n*************\n${newNote} ${auditEntry}`
-//       } else {
-//         // Add user note with a separator if no plan change note exists
-//         noteEntry = `*************\n${newNote} ${auditEntry}`
-//       }
-//     }
-
-//     // If no plan change and no additional note, return without making updates
-//     if (!noteEntry.trim()) {
-//       return res.status(400).send("No changes detected.")
-//     }
-
-//     // Combine new note with existing notes, ensuring consistent formatting
-//     const updatedNotes = `${noteEntry.trim()}\n\n${existingTask.Task_notes || ""}`.trim()
-
-//     // Build the base query and values for updating task notes (and optionally the plan)
-//     let query = "UPDATE Task SET Task_notes = ?"
-//     const values = [updatedNotes]
-
-//     // Check if Task_plan needs to be updated
-//     if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
-//       query += ", Task_plan = ?"
-//       values.push(Task_plan)
-//     }
-
-//     query += " WHERE Task_id = ?"
-//     values.push(Task_id)
-
-//     // Update the task notes (and optionally the plan) in the database
-//     const [result] = await db.execute(query, values)
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).send("Task not found or unable to update notes.")
-//     }
-
-//     res.send("Task notes and plan updated successfully.")
-//   } catch (error) {
-//     console.error("Error updating task notes:", error)
-//     res.status(500).send("Server error, unable to update notes.")
-//   }
-// }
-
 exports.saveTaskNotes = async (req, res) => {
   const { Task_id, newNote, Task_plan, Task_owner } = req.body // Include Task_owner in destructuring
 
@@ -859,8 +762,9 @@ exports.saveTaskNotes = async (req, res) => {
 
     // Only add user-provided note if present
     if (newNote) {
-      noteEntry = `*************\n${newNote} 
-      [${username}, State: '${state}', ${timestamp}]`
+      noteEntry = `*************\n
+      [${username}, State: '${state}', ${timestamp}]
+      ${newNote}`
     }
 
     // If no note is provided, ensure we still handle possible plan changes

@@ -226,7 +226,7 @@ const TaskManagementSystem = () => {
         {error && <div className="error-box">{error}</div>}
         <div className="form-group">
           <label>
-            App_Acronym*:
+            App_Acronym{!editMode && "*"}:
             <input
               type="text"
               name="App_Acronym"
@@ -238,13 +238,13 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            RNumber*:
+            RNumber{!editMode && "*"}:
             <input
               type="text"
               name="App_Rnumber"
               value={formData.App_Rnumber}
               onChange={handleChange}
-              disabled={editMode} // Make it readonly only in edit mode
+              readOnly={editMode} // Make it readonly only in edit mode
             />
           </label>
         </div>
@@ -256,7 +256,7 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            Start Date*:
+            Start Date{!editMode && "*"}:
             <input
               type="date"
               name="App_startDate"
@@ -268,7 +268,7 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            End Date*:
+            End Date{!editMode && "*"}:
             <input
               type="date"
               name="App_endDate"
