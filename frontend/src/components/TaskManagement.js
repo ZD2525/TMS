@@ -18,11 +18,11 @@ const TaskManagementSystem = () => {
     App_Description: "",
     App_startDate: "",
     App_endDate: "",
+    App_permit_Create: "",
     App_permit_Open: "",
     App_permit_toDoList: "",
     App_permit_Doing: "",
-    App_permit_Done: "",
-    App_permit_Create: ""
+    App_permit_Done: ""
   })
   const [userGroups, setUserGroups] = useState([])
   const [error, setError] = useState("")
@@ -38,11 +38,11 @@ const TaskManagementSystem = () => {
       App_Description: "",
       App_startDate: "",
       App_endDate: "",
-      App_permit_Open: "PM", // Default value for Permit Open
-      App_permit_toDoList: "Dev", // Default value for Permit Todo
-      App_permit_Doing: "Dev", // Default value for Permit Doing
-      App_permit_Done: "PL", // Default value for Permit Done
-      App_permit_Create: "PL" // Default value for Permit Create
+      App_permit_Open: "",
+      App_permit_toDoList: "",
+      App_permit_Doing: "",
+      App_permit_Done: "",
+      App_permit_Create: ""
     })
   }
 
@@ -55,11 +55,11 @@ const TaskManagementSystem = () => {
       App_Description: app.App_Description,
       App_startDate: formatDate(app.App_startDate),
       App_endDate: formatDate(app.App_endDate),
+      App_permit_Create: app.App_permit_Create,
       App_permit_Open: app.App_permit_Open,
       App_permit_toDoList: app.App_permit_toDoList,
       App_permit_Doing: app.App_permit_Doing,
-      App_permit_Done: app.App_permit_Done,
-      App_permit_Create: app.App_permit_Create
+      App_permit_Done: app.App_permit_Done
     })
     setOriginalAppAcronym(app.App_Acronym) // Store the original App_Acronym
     setShowCreateModal(true)
@@ -288,6 +288,19 @@ const TaskManagementSystem = () => {
             </label>
           </div>
         </div>
+        <div className="form-group">
+          <label>
+            Permit Create:
+            <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="form-group-row">
           <div className="form-group">
             <label>
@@ -334,19 +347,6 @@ const TaskManagementSystem = () => {
             <label>
               Permit Done:
               <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
-                <option value="">Select Group</option>
-                {userGroups.map((group, index) => (
-                  <option key={index} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="form-group">
-            <label>
-              Permit Create:
-              <select name="App_permit_Create" value={formData.App_permit_Create} onChange={handleChange}>
                 <option value="">Select Group</option>
                 {userGroups.map((group, index) => (
                   <option key={index} value={group}>

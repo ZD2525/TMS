@@ -16,13 +16,23 @@ const transporter = nodemailer.createTransport({
 exports.createApplicationValidationRules = [
   body("App_Acronym")
     .notEmpty()
-    .withMessage("Application Acronym is mandatory.")
+    .withMessage("App Acronym is mandatory.")
     .matches(/^[a-zA-Z0-9 ]*$/)
-    .withMessage("Application Acronym must be alphanumeric and can contain spaces."),
+    .withMessage("App Acronym must be alphanumeric and can contain spaces.")
+    .isLength({ max: 50 })
+    .withMessage("App Acronym must not exceed 50 characters.")
+    .custom(async value => {
+      const query = `SELECT COUNT(*) AS count FROM APPLICATION WHERE App_Acronym = ?`
+      const [result] = await db.execute(query, [value])
+      if (result[0].count > 0) {
+        throw new Error("App Acronym must be unique.")
+      }
+    }),
+
   body("App_Rnumber")
     .notEmpty()
     .withMessage("App_Rnumber is required.")
-    .matches(/^ *[0-9]+$/)
+    .matches(/^[0-9]+$/)
     .withMessage("App_Rnumber must be a positive integer and cannot contain internal spaces.")
     .custom(value => {
       const trimmedValue = value.trim()
@@ -31,14 +41,32 @@ exports.createApplicationValidationRules = [
       }
       return true
     }),
+
   body("App_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid date format for start date."),
-  body("App_endDate").notEmpty().withMessage("End date is required.").isISO8601().withMessage("Invalid date format for end date."),
+
+  body("App_endDate")
+    .notEmpty()
+    .withMessage("End date is required.")
+    .isISO8601()
+    .withMessage("Invalid date format for end date.")
+    .custom((value, { req }) => {
+      if (new Date(value) <= new Date(req.body.App_startDate)) {
+        throw new Error("End date must be later than start date.")
+      }
+      return true
+    }),
+
   body("App_Description").optional().isString().withMessage("Application Description must be a string."),
-  body("App_permit_Open").notEmpty().withMessage("App_permit_Open is required.").isString().withMessage("App_permit_Open must be a string."),
-  body("App_permit_toDoList").notEmpty().withMessage("App_permit_toDoList is required.").isString().withMessage("App_permit_toDoList must be a string."),
-  body("App_permit_Doing").notEmpty().withMessage("App_permit_Doing is required.").isString().withMessage("App_permit_Doing must be a string."),
-  body("App_permit_Done").notEmpty().withMessage("App_permit_Done is required.").isString().withMessage("App_permit_Done must be a string."),
-  body("App_permit_Create").notEmpty().withMessage("App_permit_Create is required.").isString().withMessage("App_permit_Create must be a string.")
+
+  body("App_permit_Open").optional().isString().withMessage("App_permit_Open must be a string."),
+
+  body("App_permit_toDoList").optional().isString().withMessage("App_permit_toDoList must be a string."),
+
+  body("App_permit_Doing").optional().isString().withMessage("App_permit_Doing must be a string."),
+
+  body("App_permit_Done").optional().isString().withMessage("App_permit_Done must be a string."),
+
+  body("App_permit_Create").optional().isString().withMessage("App_permit_Create must be a string.")
 ]
 
 // Create a new application (Project Lead)
@@ -46,10 +74,14 @@ exports.createApplication = [
   exports.createApplicationValidationRules,
   async (req, res) => {
     const errors = validationResult(req)
+
+    // Check if there are errors
     if (!errors.isEmpty()) {
+      // Return only the first error
+      const firstError = errors.array({ onlyFirstError: true })[0]
       return res.status(400).json({
         error: "Validation failed",
-        details: errors.array().map(error => ({ msg: error.msg }))
+        details: [{ msg: firstError.msg }]
       })
     }
 
@@ -70,51 +102,102 @@ exports.createApplication = [
   }
 ]
 
-// Update an existing application (Project Lead)
-exports.updateApplication = async (req, res) => {
-  const { originalAppAcronym, App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
+exports.updateApplicationValidationRules = [
+  body("App_Acronym")
+    .notEmpty()
+    .withMessage("Application Acronym is mandatory.")
+    .matches(/^[a-zA-Z0-9 ]*$/)
+    .withMessage("Application Acronym must be alphanumeric and can contain spaces.")
+    .isLength({ max: 50 })
+    .withMessage("Application Acronym must not exceed 50 characters."),
+  body("App_Rnumber")
+    .notEmpty()
+    .withMessage("App_Rnumber is required.")
+    .matches(/^[0-9]+$/)
+    .withMessage("App_Rnumber must be a positive integer and cannot contain internal spaces.")
+    .custom(value => {
+      if (Number(value) === 0) {
+        throw new Error("App_Rnumber cannot be zero.")
+      }
+      return true
+    }),
+  body("App_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid date format for start date."),
+  body("App_endDate")
+    .notEmpty()
+    .withMessage("End date is required.")
+    .isISO8601()
+    .withMessage("Invalid date format for end date.")
+    .custom((value, { req }) => {
+      if (new Date(value) <= new Date(req.body.App_startDate)) {
+        throw new Error("End date must be later than start date.")
+      }
+      return true
+    }),
+  body("App_Description").optional().isString().withMessage("Application Description must be a string."),
+  body("App_permit_Open").optional().isString().withMessage("App_permit_Open must be a string."),
+  body("App_permit_toDoList").optional().isString().withMessage("App_permit_toDoList must be a string."),
+  body("App_permit_Doing").optional().isString().withMessage("App_permit_Doing must be a string."),
+  body("App_permit_Done").optional().isString().withMessage("App_permit_Done must be a string."),
+  body("App_permit_Create").optional().isString().withMessage("App_permit_Create must be a string.")
+]
 
-  // Validation for empty App_Acronym
-  if (!App_Acronym) {
-    return res.status(400).json({ error: "App_Acronym cannot be empty." })
-  }
+exports.updateApplication = [
+  exports.updateApplicationValidationRules,
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: errors.array().map(error => ({ msg: error.msg }))
+      })
+    }
 
-  const connection = await db.getConnection()
+    const { originalAppAcronym, App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
 
-  try {
-    await connection.beginTransaction()
+    const connection = await db.getConnection()
 
-    // Step 1: Update the application table
-    const appUpdateQuery = `
-      UPDATE application 
-      SET App_Acronym = ?, App_Description = ?, App_Rnumber = ?, App_startDate = ?, App_endDate = ?, App_permit_Open = ?, App_permit_toDoList = ?, App_permit_Doing = ?, App_permit_Done = ?, App_permit_Create = ? 
-      WHERE App_Acronym = ?`
-    const [appUpdateResult] = await connection.query(appUpdateQuery, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create, originalAppAcronym])
+    try {
+      await connection.beginTransaction()
 
-    if (appUpdateResult.affectedRows === 0) {
+      // Step 1: Update the application table
+      const appUpdateQuery = `
+        UPDATE application 
+        SET App_Acronym = ?, App_Description = ?, App_Rnumber = ?, App_startDate = ?, App_endDate = ?, App_permit_Open = ?, App_permit_toDoList = ?, App_permit_Doing = ?, App_permit_Done = ?, App_permit_Create = ? 
+        WHERE App_Acronym = ?`
+      const [appUpdateResult] = await connection.query(appUpdateQuery, [App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create, originalAppAcronym])
+
+      if (appUpdateResult.affectedRows === 0) {
+        await connection.rollback()
+        return res.status(404).json({ error: "Application not found or no changes were made." })
+      }
+
+      // Step 2: Update related rows in the tasks table for Task_id format: <App_Acronym>_<Task_Rnumber>
+      if (App_Acronym !== originalAppAcronym) {
+        const updateTaskIdQuery = `
+          UPDATE task
+          SET Task_id = CONCAT(?, SUBSTRING(Task_id, CHAR_LENGTH(?) + 1))
+          WHERE Task_id LIKE CONCAT(?, '_%')`
+        await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
+      }
+
+      await connection.commit()
+      res.json({ message: "Application and related tasks updated successfully." })
+    } catch (error) {
       await connection.rollback()
-      return res.status(404).json({ error: "Application not found or no changes were made." })
-    }
 
-    // Step 2: Update related rows in the tasks table for Task_id format: <App_Acronym>_<Task_Rnumber>
-    if (App_Acronym !== originalAppAcronym) {
-      const updateTaskIdQuery = `
-        UPDATE task
-        SET Task_id = CONCAT(?, SUBSTRING(Task_id, CHAR_LENGTH(?) + 1))
-        WHERE Task_id LIKE CONCAT(?, '_%')`
-      const [result] = await connection.query(updateTaskIdQuery, [App_Acronym, originalAppAcronym, originalAppAcronym])
-    }
+      // Handle duplicate entry error
+      if (error.code === "ER_DUP_ENTRY") {
+        console.error("Duplicate entry error:", error)
+        return res.status(400).json({ error: "Application Acronym already exists." })
+      }
 
-    await connection.commit()
-    res.json({ message: "Application and related tasks updated successfully." })
-  } catch (error) {
-    await connection.rollback()
-    console.error("Error during application update:", error)
-    res.status(500).json({ error: "Error updating application." })
-  } finally {
-    connection.release()
+      console.error("Error during application update:", error)
+      res.status(500).json({ error: "Error updating application." })
+    } finally {
+      connection.release()
+    }
   }
-}
+]
 
 // Get all applications (All Roles)
 exports.getApplications = async (req, res) => {
@@ -129,7 +212,7 @@ exports.getApplications = async (req, res) => {
 }
 
 exports.createPlanValidationRules = [
-  body("Plan_MVP_name").notEmpty().withMessage("Plan MVP name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan MVP name must be between 1 and 255 characters."),
+  body("Plan_MVP_name").notEmpty().withMessage("Plan name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan MVP name must be between 1 and 255 characters."),
   body("Plan_app_Acronym").notEmpty().withMessage("Plan app acronym is required.").isString().withMessage("Plan app acronym must be a string."),
   body("Plan_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid start date format."),
   body("Plan_endDate")
@@ -152,9 +235,10 @@ exports.createPlan = [
   async (req, res) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+      // Only return the first error encountered in a consistent format
       return res.status(400).json({
         error: "Validation failed",
-        details: errors.array().map(error => ({ msg: error.msg }))
+        details: [{ msg: errors.array()[0].msg }] // Wrap the first error in an array with the expected structure
       })
     }
 
@@ -200,7 +284,7 @@ exports.getPlans = async (req, res) => {
   }
 }
 
-exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is required.").isLength({ max: 255 }).withMessage("Task name must not exceed 255 characters."), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
+exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is mandatory.").isLength({ max: 255 }).withMessage("Task name must not exceed 255 characters."), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
 
 // Create a new task (Project Lead)
 exports.createTask = [
@@ -674,6 +758,81 @@ exports.viewTask = async (req, res) => {
   }
 }
 
+// exports.saveTaskNotes = async (req, res) => {
+//   const { Task_id, newNote, Task_plan } = req.body
+
+//   if (!Task_id) {
+//     return res.status(400).send("Task ID is required.")
+//   }
+
+//   try {
+//     // Retrieve existing task notes and plan
+//     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_plan, Task_state FROM Task WHERE Task_id = ?", [Task_id])
+
+//     if (!existingTask) {
+//       return res.status(404).send("Task not found.")
+//     }
+
+//     // Prepare audit entry using the utility function for GMT+8 conversion
+//     const username = req.body.username || "unknown"
+//     const state = existingTask.Task_state || "Unknown"
+//     const timestamp = getUTCPlus8Timestamp() // Use your utility function for timestamp
+//     const auditEntry = `[${username}, ${state}, ${timestamp}]`
+
+//     // Prepare note entries
+//     let noteEntry = ""
+
+//     // Handle plan change note
+//     if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
+//       noteEntry += `*************\nThe Task Plan has been changed to '${Task_plan || "None"}'. ${auditEntry}`
+//     }
+
+//     // Append user-provided note if present
+//     if (newNote) {
+//       if (noteEntry) {
+//         // If there is already a noteEntry (e.g., plan change), add a new entry with a separator
+//         noteEntry += `\n*************\n${newNote} ${auditEntry}`
+//       } else {
+//         // Add user note with a separator if no plan change note exists
+//         noteEntry = `*************\n${newNote} ${auditEntry}`
+//       }
+//     }
+
+//     // If no plan change and no additional note, return without making updates
+//     if (!noteEntry.trim()) {
+//       return res.status(400).send("No changes detected.")
+//     }
+
+//     // Combine new note with existing notes, ensuring consistent formatting
+//     const updatedNotes = `${noteEntry.trim()}\n\n${existingTask.Task_notes || ""}`.trim()
+
+//     // Build the base query and values for updating task notes (and optionally the plan)
+//     let query = "UPDATE Task SET Task_notes = ?"
+//     const values = [updatedNotes]
+
+//     // Check if Task_plan needs to be updated
+//     if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
+//       query += ", Task_plan = ?"
+//       values.push(Task_plan)
+//     }
+
+//     query += " WHERE Task_id = ?"
+//     values.push(Task_id)
+
+//     // Update the task notes (and optionally the plan) in the database
+//     const [result] = await db.execute(query, values)
+
+//     if (result.affectedRows === 0) {
+//       return res.status(404).send("Task not found or unable to update notes.")
+//     }
+
+//     res.send("Task notes and plan updated successfully.")
+//   } catch (error) {
+//     console.error("Error updating task notes:", error)
+//     res.status(500).send("Server error, unable to update notes.")
+//   }
+// }
+
 exports.saveTaskNotes = async (req, res) => {
   const { Task_id, newNote, Task_plan } = req.body
 
@@ -693,41 +852,27 @@ exports.saveTaskNotes = async (req, res) => {
     const username = req.body.username || "unknown"
     const state = existingTask.Task_state || "Unknown"
     const timestamp = getUTCPlus8Timestamp() // Use your utility function for timestamp
-    const auditEntry = `[${username}, ${state}, ${timestamp}]`
 
     // Prepare note entries
     let noteEntry = ""
 
-    // Handle plan change note
-    if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
-      noteEntry += `*************\nThe Task Plan has been changed to '${Task_plan || "None"}'. ${auditEntry}`
-    }
-
-    // Append user-provided note if present
+    // Only add user-provided note if present
     if (newNote) {
-      if (noteEntry) {
-        // If there is already a noteEntry (e.g., plan change), add a new entry with a separator
-        noteEntry += `\n*************\n${newNote} ${auditEntry}`
-      } else {
-        // Add user note with a separator if no plan change note exists
-        noteEntry = `*************\n${newNote} ${auditEntry}`
-      }
+      noteEntry = `*************\n${newNote} [${username}, ${state}, ${timestamp}]`
     }
 
-    // If no plan change and no additional note, return without making updates
-    if (!noteEntry.trim()) {
-      return res.status(400).send("No changes detected.")
-    }
+    // If no note is provided, ensure we still handle possible plan changes
+    const hasPlanChanged = Task_plan !== undefined && Task_plan !== existingTask.Task_plan
 
     // Combine new note with existing notes, ensuring consistent formatting
-    const updatedNotes = `${noteEntry.trim()}\n\n${existingTask.Task_notes || ""}`.trim()
+    const updatedNotes = noteEntry ? `${noteEntry.trim()}\n\n${existingTask.Task_notes || ""}`.trim() : existingTask.Task_notes
 
-    // Build the base query and values for updating task notes (and optionally the plan)
+    // Build the base query and values for updating task notes (without updating Task_plan)
     let query = "UPDATE Task SET Task_notes = ?"
     const values = [updatedNotes]
 
-    // Check if Task_plan needs to be updated
-    if (Task_plan !== undefined && Task_plan !== existingTask.Task_plan) {
+    // Check if Task_plan needs to be updated without logging
+    if (hasPlanChanged) {
       query += ", Task_plan = ?"
       values.push(Task_plan)
     }
