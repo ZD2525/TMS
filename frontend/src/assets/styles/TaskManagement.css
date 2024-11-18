@@ -6,15 +6,16 @@
 .create-app-button {
   margin-bottom: 20px;
   padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
+  background-color: white;
+  color: black;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  border: 2px solid black; /* Add a black border */
 }
 
 .create-app-button:hover {
-  background-color: #0056b3;
+  background-color: #c0c0c0;
 }
 
 .application-grid {
@@ -32,6 +33,10 @@
   position: relative; /* Needed for positioning */
 }
 
+.edit-button:hover {
+  background-color: #cacaca;
+}
+
 .edit-button {
   position: absolute;
   top: 8px;
@@ -41,13 +46,29 @@
   cursor: pointer;
   font-size: 16px;
 }
-
 .application-card h3 {
   margin-top: 0;
 }
 
 .application-card p {
   margin: 5px 0;
+}
+
+.view-application-button {
+  display: block;
+  width: 100%; /* Makes the button span the full width of the parent element */
+  padding: 10px;
+  background-color: white; /* Blue background */
+  color: black;
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid black; /* Add a black border */
+}
+
+.view-application-button:hover {
+  background-color: #cacaca; /* Darker blue on hover */
 }
 
 /* App Creation Modal */

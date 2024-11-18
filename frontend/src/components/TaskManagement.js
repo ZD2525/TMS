@@ -199,7 +199,10 @@ const TaskManagementSystem = () => {
                   ✏️
                 </button>
               )}
-              <h3>{app.App_Acronym}</h3>
+              <p>
+                <strong>App Name: </strong>
+                {app.App_Acronym}
+              </p>
               <p>
                 <strong>Description:</strong> {app.App_Description}
               </p>
@@ -209,18 +212,9 @@ const TaskManagementSystem = () => {
               <p>
                 <strong>End Date:</strong> {new Date(app.App_endDate).toLocaleDateString()}
               </p>
-              <span
-                className="view-application"
-                onClick={() => handleViewApplication(app)}
-                style={{
-                  display: "block",
-                  marginTop: "10px",
-                  cursor: "pointer",
-                  textAlign: "center"
-                }}
-              >
+              <button className="view-application-button" onClick={() => handleViewApplication(app)}>
                 View
-              </span>
+              </button>
             </div>
           ))
         ) : (

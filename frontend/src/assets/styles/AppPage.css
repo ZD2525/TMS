@@ -19,16 +19,17 @@ h3 {
 .create-task-button {
   margin: 10px;
   padding: 10px 16px;
-  background-color: #007bff;
-  color: white;
+  background-color: white;
+  color: black;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  border: 2px solid black; /* Add a black border */
 }
 
 .create-plan-button:hover,
 .create-task-button:hover {
-  background-color: #0056b3;
+  background-color: rgb(214, 214, 214);
 }
 
 button {
@@ -62,10 +63,11 @@ button:hover {
 
 .task-column h2 {
   text-align: center;
-  background: #007bff;
-  color: white;
+  background: white;
+  color: black;
   padding: 8px;
   border-radius: 4px;
+  border: 2px solid black; /* Add a black border */
 }
 
 /* Task Cards */
