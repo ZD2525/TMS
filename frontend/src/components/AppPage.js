@@ -591,8 +591,12 @@ const AppPage = ({ currentUser }) => {
                 <input type="color" name="Plan_color" value={planData.Plan_color} onChange={handleChange} />
               </label>
             </div>
-            <button onClick={handleCreatePlan}>Create</button>
-            <button onClick={handleClosePlanModal}>Cancel</button>
+            <button onClick={handleCreatePlan} className="create-button">
+              Create
+            </button>
+            <button onClick={handleClosePlanModal} className="cancel-button">
+              Cancel
+            </button>
           </div>
         </div>
       )}
