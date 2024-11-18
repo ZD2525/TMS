@@ -315,6 +315,18 @@ const AppPage = ({ currentUser }) => {
 
   const handleReleaseTask = async () => {
     console.log("Releasing task with ID:", selectedTask.Task_id, "and App_Acronym:", selectedTask.Task_app_Acronym)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before unassigning the task:", error)
+        setError("Unable to save notes. Task unassignment aborted.")
+        return // Stop execution if notes could not be saved
+      }
+    }
+
     try {
       const response = await axios.put("http://localhost:3000/release-task", {
         Task_id: selectedTask.Task_id,
