@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken")
 const db = require("../models/db")
-const mapTaskState = require("../utils/mapTaskState")
 const JWT_SECRET = process.env.JWT_SECRET
 
 const verifyToken = async (req, res, next) => {
@@ -45,8 +44,6 @@ const CheckGroup = groupname => async (req, res, next) => {
   }
 
   try {
-    console.log("Checking group for user:", req.user.username, "against group:", group)
-
     let query
     let values
 
@@ -105,8 +102,6 @@ const CheckTaskStatePermission = async (req, res, next) => {
     }
 
     const requiredGroup = permissionsData[requiredPermissionKey]
-    console.log("Required group for task state:", requiredGroup)
-
     // Ensure `requiredGroup` is an array
     req.requiredGroup = requiredGroup ? [requiredGroup] : []
     next() // Proceed to the next middleware or route handler
@@ -150,8 +145,6 @@ const appendTaskNotes = async (req, res, next) => {
             newState = "Done" // Set the target state
           }
         }
-
-        console.log("Task State Transition:", prevState, "->", newState)
       }
     } else {
       console.log("No Task_id provided in request body.")
@@ -159,8 +152,6 @@ const appendTaskNotes = async (req, res, next) => {
 
     // Construct the notes entry with state transition information
     const constructedNotes = `*************\nTASK ${actionDescription.toUpperCase()} [${creator || owner}, ${prevState} -> ${newState}, ${timestamp} (UTC)]\n\n${req.body.notes || ""}\n\n${notes}`
-
-    console.log("Constructed Notes Before Assignment:", constructedNotes)
 
     req.body.notes = constructedNotes
   } catch (error) {
