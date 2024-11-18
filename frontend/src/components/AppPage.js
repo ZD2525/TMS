@@ -621,7 +621,7 @@ const AppPage = ({ currentUser }) => {
 
       {showTaskModal && (
         <div className="modal-overlay" onClick={handleCloseTaskModal}>
-          <div className="create-task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "800px" }}>
+          <div className="view-task-modal-content" onClick={e => e.stopPropagation()} style={{ width: "80%", maxWidth: "1200px" }}>
             <div className="task-modal-container">
               <div className="task-creation-section">
                 <h2>Create Task</h2>
@@ -629,22 +629,16 @@ const AppPage = ({ currentUser }) => {
                 <div className="form-group">
                   <label>Creator:</label>
                   <input type="text" value={taskData.Task_creator} readOnly />
-
                   <label>Creation Date:</label>
                   <input type="text" value={taskData.Task_createDate} readOnly />
-
                   <label>Status:</label>
                   <input type="text" value={taskData.Task_state} readOnly />
-
                   <label>Task Name:</label>
                   <input type="text" name="Task_name" value={taskData.Task_name} onChange={handleTaskChange} />
-
                   <label>Task Owner:</label>
                   <input type="text" value={taskData.Task_owner} readOnly />
-
                   <label>Description:</label>
                   <textarea name="Task_description" value={taskData.Task_description} onChange={handleTaskChange} />
-
                   <label>Plan Name:</label>
                   <select name="Task_plan" value={taskData.Task_plan} onChange={handlePlanSelection}>
                     <option value="">Select Plan</option>
@@ -656,7 +650,6 @@ const AppPage = ({ currentUser }) => {
                   </select>
                   <label>Plan Start Date:</label>
                   <input type="text" value={taskData.Task_planStartDate || ""} readOnly />
-
                   <label>Plan End Date:</label>
                   <input type="text" value={taskData.Task_planEndDate || ""} readOnly />
                 </div>
@@ -664,9 +657,13 @@ const AppPage = ({ currentUser }) => {
 
               <div className="task-logs-section">
                 <h2>Logs</h2>
-                <div>{logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>No logs available.</p>}</div>
-                <button onClick={handleCreateTask}>Create</button>
-                <button onClick={handleCloseTaskModal}>Cancel</button>
+                <div className="task-notes">
+                  <p>No logs available.</p>
+                </div>
+                <div className="modal-footer">
+                  <button onClick={handleCreateTask}>Create</button>
+                  <button onClick={handleCloseTaskModal}>Cancel</button>
+                </div>
               </div>
             </div>
           </div>
