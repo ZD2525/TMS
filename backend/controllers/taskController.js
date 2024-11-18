@@ -583,8 +583,8 @@ ${existingTask.Task_notes || ""}
           from: "taskmanagementsystem@tms.com",
           to: emails.flat(),
           subject: `Task ${Task_id} has been moved to the 'Done' state`,
-          text: `The task with ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. 
-          Please review if further action is required.`
+          text: `The task with task ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. 
+          Please review to reject or approve the task.`
         },
         (error, info) => {
           if (error) {
@@ -835,7 +835,7 @@ exports.viewTask = async (req, res) => {
 // }
 
 exports.saveTaskNotes = async (req, res) => {
-  const { Task_id, newNote, Task_plan } = req.body
+  const { Task_id, newNote, Task_plan, Task_owner } = req.body // Include Task_owner in destructuring
 
   if (!Task_id) {
     return res.status(400).send("Task ID is required.")
@@ -873,23 +873,29 @@ exports.saveTaskNotes = async (req, res) => {
     let query = "UPDATE Task SET Task_notes = ?"
     const values = [updatedNotes]
 
-    // Check if Task_plan needs to be updated without logging
+    // Check if Task_plan needs to be updated
     if (hasPlanChanged) {
       query += ", Task_plan = ?"
       values.push(Task_plan)
     }
 
+    // Check if Task_owner needs to be updated
+    if (Task_owner) {
+      query += ", Task_owner = ?"
+      values.push(Task_owner)
+    }
+
     query += " WHERE Task_id = ?"
     values.push(Task_id)
 
-    // Update the task notes (and optionally the plan) in the database
+    // Update the task notes (and optionally the plan and owner) in the database
     const [result] = await db.execute(query, values)
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or unable to update notes.")
     }
 
-    res.send("Task notes and plan updated successfully.")
+    res.send("Task notes, plan, and owner updated successfully.")
   } catch (error) {
     console.error("Error updating task notes:", error)
     res.status(500).send("Server error, unable to update notes.")

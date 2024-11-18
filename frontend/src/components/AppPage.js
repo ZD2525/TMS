@@ -524,6 +524,7 @@ const AppPage = ({ currentUser }) => {
         Task_id: selectedTask.Task_id,
         newNote: taskData.newNote ? taskData.newNote.trim() : undefined,
         Task_plan: hasPlanChanged ? updatedPlan : undefined,
+        Task_owner: currentUser.username, // Pass the current user as Task_owner
         username: currentUser.username // Pass username to the backend if needed
       })
 
@@ -537,7 +538,8 @@ const AppPage = ({ currentUser }) => {
       setTaskData(prevData => ({
         ...prevData,
         newNote: "",
-        Task_plan: updatedTaskResponse.data.Task_plan // Update taskData with the new plan
+        Task_plan: updatedTaskResponse.data.Task_plan, // Update taskData with the new plan
+        Task_owner: currentUser.username // Update Task_owner
       }))
 
       // Refresh the task list to show the updated plan in the display
