@@ -145,18 +145,31 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  // Function to handle assigning a task
   const handleAssignTask = async () => {
+    console.log("Assigning task with ID:", selectedTask.Task_id)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before assigning the task:", error)
+        setError("Unable to save notes. Task assignment aborted.")
+        return // Stop execution if notes could not be saved
+      }
+    }
+
+    // Proceed with assigning the task
     try {
       const response = await axios.put("http://localhost:3000/assign-task", {
         Task_id: selectedTask.Task_id,
         App_Acronym: selectedTask.Task_app_Acronym
       })
       console.log("Task assigned successfully:", response.data)
-      fetchTasks()
-      setShowTaskViewModal(false)
+      fetchTasks() // Refresh tasks
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
-      console.error("Error assigning task:", error)
+      console.error("Error assigning task:", error.response?.data || error.message)
       setError("Unable to assign task.")
     }
   }
@@ -317,18 +330,27 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleUnassignTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id) {
-      setError("Task ID is missing.")
-      return
+    console.log("Unassigning task with ID:", selectedTask.Task_id)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before unassigning the task:", error)
+        setError("Unable to save notes. Task unassignment aborted.")
+        return // Stop execution if notes could not be saved
+      }
     }
 
+    // Proceed with unassigning the task
     try {
       const response = await axios.put("http://localhost:3000/unassign-task", {
         Task_id: selectedTask.Task_id
       })
       console.log("Task unassigned successfully:", response.data)
-      fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false)
+      fetchTasks() // Refresh tasks
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
       console.error("Error unassigning task:", error.response?.data || error.message)
       setError("Unable to unassign task.")
@@ -336,19 +358,28 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReviewTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id || !selectedTask.Task_app_Acronym) {
-      setError("Task ID or app acronym is missing.")
-      return
+    console.log("Reviewing task with ID:", selectedTask.Task_id)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before reviewing the task:", error)
+        setError("Unable to save notes. Task review aborted.")
+        return // Stop execution if notes could not be saved
+      }
     }
 
+    // Proceed with reviewing the task
     try {
       const response = await axios.put("http://localhost:3000/review-task", {
         Task_id: selectedTask.Task_id,
         app_acronym: selectedTask.Task_app_Acronym
       })
       console.log("Task reviewed successfully:", response.data)
-      fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false)
+      fetchTasks() // Refresh tasks
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
       console.error("Error reviewing task:", error.response?.data || error.message)
       setError("Unable to review task.")
@@ -356,18 +387,27 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleApproveTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id) {
-      setError("Task ID is missing.")
-      return
+    console.log("Approving task with ID:", selectedTask.Task_id)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before approving the task:", error)
+        setError("Unable to save notes. Task approval aborted.")
+        return // Stop execution if notes could not be saved
+      }
     }
 
+    // Proceed with approving the task
     try {
       const response = await axios.put("http://localhost:3000/approve-task", {
         Task_id: selectedTask.Task_id
       })
       console.log("Task approved successfully:", response.data)
       fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false)
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
       console.error("Error approving task:", error.response?.data || error.message)
       setError("Unable to approve task.")
@@ -375,11 +415,20 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleRejectTask = async () => {
-    if (!selectedTask || !selectedTask.Task_id) {
-      setError("Task ID is missing.")
-      return
+    console.log("Rejecting task with ID:", selectedTask.Task_id)
+
+    // Save notes first if there are any notes entered
+    if (taskData.newNote?.trim()) {
+      try {
+        await handleSaveNotes() // Call the save notes function
+      } catch (error) {
+        console.error("Error saving notes before rejecting the task:", error)
+        setError("Unable to save notes. Task rejection aborted.")
+        return // Stop execution if notes could not be saved
+      }
     }
 
+    // Proceed with rejecting the task
     try {
       const requestData = {
         Task_id: selectedTask.Task_id
@@ -393,7 +442,7 @@ const AppPage = ({ currentUser }) => {
       const response = await axios.put("http://localhost:3000/reject-task", requestData)
       console.log("Task rejected successfully:", response.data)
       fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false)
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
       console.error("Error rejecting task:", error.response?.data || error.message)
       setError("Unable to reject task.")
