@@ -76,6 +76,25 @@
   box-sizing: border-box;
 }
 
+/* App Creation Modal Button Styles */
+.app-modal-content .create-button {
+  background-color: #28a745; /* Green */
+  color: white;
+}
+
+.app-modal-content .create-button:hover {
+  background-color: #218838;
+}
+
+.app-modal-content .cancel-button {
+  background-color: #6c757d; /* Grey */
+  color: white;
+}
+
+.app-modal-content .cancel-button:hover {
+  background-color: #5a6268;
+}
+
 .form-group {
   margin-bottom: 10px;
   width: 100%;

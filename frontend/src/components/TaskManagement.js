@@ -349,8 +349,12 @@ const TaskManagementSystem = () => {
             </select>
           </label>
         </div>
-        <button onClick={handleSubmit}>{editMode ? "Update" : "Create"}</button>
-        <button onClick={handleCloseModal}>Cancel</button>
+        <button onClick={handleSubmit} className="create-button">
+          {editMode ? "Update" : "Create"}
+        </button>
+        <button onClick={handleCloseModal} className="cancel-button">
+          Cancel
+        </button>
       </Modal>
     </div>
   )
