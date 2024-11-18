@@ -1,3 +1,4 @@
+/* General App Styling */
 .app-page {
   padding: 20px;
   font-family: Arial, sans-serif;
@@ -8,15 +9,16 @@ h3 {
 }
 
 .scrollable-select select {
-  max-height: 150px; /* Adjust height as needed */
-  overflow-y: auto; /* Add vertical scrolling */
+  max-height: 150px;
+  overflow-y: auto;
   display: block;
 }
 
+/* Buttons */
 .create-plan-button,
 .create-task-button {
   margin: 10px;
-  padding: 10px 16px; /* Slightly reduced padding */
+  padding: 10px 16px;
   background-color: #007bff;
   color: white;
   border: none;
@@ -29,6 +31,21 @@ h3 {
   background-color: #0056b3;
 }
 
+button {
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  color: white;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Task Columns */
 .task-columns {
   display: flex;
   justify-content: space-around;
@@ -51,6 +68,7 @@ h3 {
   border-radius: 4px;
 }
 
+/* Task Cards */
 .task-card {
   background: white;
   margin: 10px 0;
@@ -99,15 +117,7 @@ h3 {
   margin-top: 20px;
 }
 
-.task-column {
-  width: 18%;
-  background: #f5f5f5;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Modal CSS */
+/* Modal Styling */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -123,7 +133,7 @@ h3 {
 
 /* Create Plan Modal */
 .create-plan-modal-content {
-  background: white; /* Ensure a white background */
+  background: white;
   padding: 15px;
   border-radius: 5px;
   max-width: 800px;
@@ -131,14 +141,14 @@ h3 {
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1100; /* Higher z-index than overlay */
+  z-index: 1100;
 }
 
 .create-plan-modal-content button {
-  width: auto; /* Adjust the width as per your requirement */
+  width: auto;
   margin: 5px;
-  padding: 6px 12px; /* Optionally adjust padding if needed */
-  font-size: 13px; /* Optionally adjust font size */
+  padding: 6px 12px;
+  font-size: 13px;
   cursor: pointer;
   border: none;
   border-radius: 4px;
@@ -153,11 +163,11 @@ h3 {
 .create-plan-error-box {
   background: #f8d7da;
   color: #721c24;
-  padding: 5px 10px; /* Reduced padding */
-  margin-bottom: 10px; /* Reduced margin */
+  padding: 5px 10px;
+  margin-bottom: 10px;
   border: 1px solid #f5c6cb;
   border-radius: 3px;
-  font-size: 12px; /* Smaller font size */
+  font-size: 12px;
   max-width: 90%;
 }
 
@@ -166,14 +176,14 @@ h3 {
   background: white;
   padding: 15px;
   border-radius: 5px;
-  max-width: 1200px; /* Adjust width to match the view task modal */
+  max-width: 1200px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  position: relative; /* Allow absolute positioning inside */
+  position: relative;
   display: flex;
-  flex-direction: column; /* Ensure content stacks vertically */
+  flex-direction: column;
 }
 
 /* Modal Footer Buttons for Create Task */
@@ -184,9 +194,9 @@ h3 {
 
 .create-task-modal-content .task-logs-section .modal-footer {
   display: flex;
-  justify-content: flex-start; /* Align buttons to the left; adjust as needed */
-  gap: 10px; /* Space between buttons */
-  margin-top: 15px; /* Margin to separate buttons from content above */
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 15px;
 }
 
 .create-task-modal-content .task-logs-section button {
@@ -198,18 +208,68 @@ h3 {
   border-radius: 4px;
   background-color: #007bff;
   color: white;
-  margin: 0 5px; /* Optional margin for button spacing */
+  margin: 0 5px;
 }
 
 .create-task-modal-content .task-logs-section button:hover {
   background-color: #0056b3;
 }
 
-/* General adjustments for buttons in modals */
-.modal-footer button {
-  margin: 0; /* Remove default margin for consistency */
+/* Button Colors */
+.create-button {
+  background-color: #28a745; /* Green */
 }
 
+.create-button:hover {
+  background-color: #218838;
+}
+
+.cancel-button {
+  background-color: #6c757d; /* Grey */
+}
+
+.cancel-button:hover {
+  background-color: #5a6268;
+}
+
+.save-button {
+  background-color: #007bff; /* Blue */
+}
+
+.save-button:hover {
+  background-color: #0056b3;
+}
+
+.assign-button,
+.release-button,
+.review-button,
+.approve-button {
+  background-color: #28a745; /* Green */
+}
+
+.assign-button:hover,
+.release-button:hover,
+.review-button:hover,
+.approve-button:hover {
+  background-color: #218838;
+}
+
+.reject-button,
+.unassign-button {
+  background-color: #dc3545; /* Red */
+}
+
+.reject-button:hover,
+.unassign-button:hover {
+  background-color: #c82333;
+}
+
+/* General adjustments for buttons in modals */
+.modal-footer button {
+  margin: 0;
+}
+
+/* Error Box */
 .create-task-error-box {
   background: #f8d7da;
   color: #721c24;
@@ -221,6 +281,7 @@ h3 {
   max-width: 90%;
 }
 
+/* Modal Container for Task Modals */
 .task-modal-container {
   display: flex;
   flex-direction: row;
@@ -317,21 +378,6 @@ textarea {
   box-shadow: inset 0 0 0 1px #ccc;
   display: inline-block;
   margin-top: 8px;
-}
-
-button {
-  margin-top: 6px;
-  padding: 6px 10px;
-  font-size: 11px;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
-  color: white;
-}
-
-button:hover {
-  background-color: #0056b3;
 }
 
 /* View Task Modal */

@@ -639,8 +639,12 @@ const AppPage = ({ currentUser }) => {
                   <p>No logs available.</p>
                 </div>
                 <div className="modal-footer">
-                  <button onClick={handleCreateTask}>Create</button>
-                  <button onClick={handleCloseTaskModal}>Cancel</button>
+                  <button className="create-button" onClick={handleCreateTask}>
+                    Create
+                  </button>
+                  <button className="cancel-button" onClick={handleCloseTaskModal}>
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
@@ -704,36 +708,64 @@ const AppPage = ({ currentUser }) => {
                 <div className="modal-footer">
                   {selectedTask && selectedTask.Task_state === "Open" && hasGroupPermission && (
                     <>
-                      <button onClick={handleReleaseTask}>Release</button>
-                      <button onClick={handleSaveNotes}>Save</button>
-                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                      <button className="release-button" onClick={handleReleaseTask}>
+                        Release
+                      </button>
+                      <button className="save-button" onClick={handleSaveNotes}>
+                        Save
+                      </button>
+                      <button className="cancel-button" onClick={handleCloseTaskViewModal}>
+                        Cancel
+                      </button>
                     </>
                   )}
                   {selectedTask && selectedTask.Task_state === "To-Do" && hasGroupPermission && (
                     <>
-                      <button onClick={handleAssignTask}>Assign</button>
-                      <button onClick={handleSaveNotes}>Save</button>
-                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                      <button className="assign-button" onClick={handleAssignTask}>
+                        Assign
+                      </button>
+                      <button className="save-button" onClick={handleSaveNotes}>
+                        Save
+                      </button>
+                      <button className="cancel-button" onClick={handleCloseTaskViewModal}>
+                        Cancel
+                      </button>
                     </>
                   )}
                   {selectedTask && selectedTask.Task_state === "Doing" && hasGroupPermission && (
                     <>
-                      <button onClick={handleUnassignTask}>Unassign</button>
-                      <button onClick={handleReviewTask}>Review</button>
-                      <button onClick={handleSaveNotes}>Save</button>
-                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                      <button className="unassign-button" onClick={handleUnassignTask}>
+                        Unassign
+                      </button>
+                      <button className="review-button" onClick={handleReviewTask}>
+                        Review
+                      </button>
+                      <button className="save-button" onClick={handleSaveNotes}>
+                        Save
+                      </button>
+                      <button className="cancel-button" onClick={handleCloseTaskViewModal}>
+                        Cancel
+                      </button>
                     </>
                   )}
                   {selectedTask && selectedTask.Task_state === "Done" && hasGroupPermission && (
                     <>
                       {!hasPlanChanged && (
                         <>
-                          <button onClick={handleApproveTask}>Approve</button>
-                          <button onClick={handleSaveNotes}>Save</button>
+                          <button className="approve-button" onClick={handleApproveTask}>
+                            Approve
+                          </button>
+                          <button className="save-button" onClick={handleSaveNotes}>
+                            Save
+                          </button>
                         </>
                       )}
-                      <button onClick={handleRejectTask}>{hasPlanChanged ? "Reject with Plan Change" : "Reject"}</button>
-                      <button onClick={handleCloseTaskViewModal}>Cancel</button>
+                      <button className="reject-button" onClick={handleRejectTask}>
+                        {hasPlanChanged ? "Reject" : "Reject"}
+                      </button>
+                      <button className="cancel-button" onClick={handleCloseTaskViewModal}>
+                        Cancel
+                      </button>
                     </>
                   )}
                 </div>
