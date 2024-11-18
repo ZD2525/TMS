@@ -344,13 +344,20 @@ const AppPage = ({ currentUser }) => {
     }
 
     try {
-      const response = await axios.put("http://localhost:3000/release-task", {
+      const requestData = {
         Task_id: selectedTask.Task_id,
         App_Acronym: selectedTask.Task_app_Acronym,
-        Task_owner: currentUser.username // Include currentUser.username here
-      })
+        Task_owner: currentUser.username // Include current user as owner
+      }
+
+      // Conditionally include new plan data if there is a change
+      if (hasPlanChanged) {
+        requestData.newPlan = taskData.Task_plan
+      }
+
+      const response = await axios.put("http://localhost:3000/release-task", requestData)
       fetchTasks() // Refresh tasks
-      setShowTaskViewModal(false)
+      setShowTaskViewModal(false) // Close modal
     } catch (error) {
       console.error("Error releasing task:", error.response?.data || error.message)
       setError("Unable to release task.")
@@ -444,7 +451,7 @@ const AppPage = ({ currentUser }) => {
     try {
       const requestData = {
         Task_id: selectedTask.Task_id,
-        Task_owner: currentUser.username // Include current user as owner
+        Task_owner: currentUser.username
       }
 
       if (hasPlanChanged) {
@@ -552,8 +559,8 @@ const AppPage = ({ currentUser }) => {
               const planColor = plans.find(plan => plan.Plan_MVP_name === task.Task_plan)?.Plan_color || "#d3d3d3"
               return (
                 <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
-                  <h3>{task.Task_id}</h3> {/* Display Task ID */}
-                  <p>{task.Task_description || "No description provided."}</p> {/* Display Task Description */}
+                  <h3>{task.Task_id}</h3>
+                  <p>{task.Task_description || "No description provided."}</p>
                   <div className="task-card-footer">
                     <span className="plan-name" style={{ backgroundColor: planColor }}>
                       {task.Task_plan || "No Plan"}
@@ -702,11 +709,13 @@ const AppPage = ({ currentUser }) => {
                 <h2>Logs</h2>
                 <div className="task-notes">{selectedTask?.Task_notes ? selectedTask.Task_notes.split("\n").map((note, index) => <p key={index}>{note}</p>) : <p>No logs available.</p>}</div>
 
-                {/* Notes Input Area */}
-                <div className="task-notes-container">
-                  <label>Notes:</label>
-                  <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} placeholder="Add notes here..." />
-                </div>
+                {/* Conditionally render the Notes Input Area based on Task State */}
+                {selectedTask.Task_state !== "Closed" && (
+                  <div className="task-notes-container">
+                    <label>Notes:</label>
+                    <textarea value={taskData.newNote || ""} onChange={e => setTaskData(prevData => ({ ...prevData, newNote: e.target.value }))} placeholder="Add notes here..." />
+                  </div>
+                )}
 
                 {/* Buttons for the modal footer */}
                 <div className="modal-footer">
