@@ -387,9 +387,6 @@ exports.assignTask = async (req, res) => {
   const newState = "Doing"
   const currentState = "To-Do"
 
-  console.log("Task_id:", Task_id)
-  console.log("Task_owner:", Task_owner)
-
   if (!Task_id || !Task_owner) {
     return res.status(400).send("Task_id and Task_owner are required.")
   }

@@ -46,8 +46,6 @@ const AppPage = ({ currentUser }) => {
       const response = await axios.post("http://localhost:3000/tasks", {
         App_Acronym: appAcronym
       })
-      console.log("Fetched tasks response:", response.data)
-
       // Group tasks by their state
       const groupedTasks = response.data.reduce(
         (acc, task) => {
@@ -73,7 +71,6 @@ const AppPage = ({ currentUser }) => {
 
     try {
       const response = await axios.post("http://localhost:3000/plans", { appAcronym })
-      console.log("Fetched Plans Response:", response.data)
       setPlans(response.data)
     } catch (error) {
       console.error("Error fetching plans:", error.response?.data || error.message)
@@ -82,7 +79,6 @@ const AppPage = ({ currentUser }) => {
 
   const checkUserGroupPermission = async requiredGroup => {
     try {
-      console.log("Checking user permission for group:", requiredGroup)
       const response = await axios.post("http://localhost:3000/checkgroup", { group: Array.isArray(requiredGroup) ? requiredGroup : [requiredGroup] })
       return response.data.success || false
     } catch (error) {
@@ -171,8 +167,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleAssignTask = async () => {
-    console.log("Assigning task with ID:", selectedTask.Task_id)
-
     // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
@@ -191,7 +185,6 @@ const AppPage = ({ currentUser }) => {
         App_Acronym: selectedTask.Task_app_Acronym,
         Task_owner: currentUser.username
       })
-      console.log("Task assigned successfully:", response.data)
       fetchTasks() // Refresh tasks
       setShowTaskViewModal(false) // Close modal
     } catch (error) {
@@ -340,8 +333,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReleaseTask = async () => {
-    console.log("Releasing task with ID:", selectedTask.Task_id)
-
     if (taskData.newNote?.trim()) {
       try {
         await handleSaveNotes() // Save notes before releasing
@@ -358,7 +349,6 @@ const AppPage = ({ currentUser }) => {
         App_Acronym: selectedTask.Task_app_Acronym,
         Task_owner: currentUser.username // Include currentUser.username here
       })
-      console.log("Task released successfully:", response.data)
       fetchTasks() // Refresh tasks
       setShowTaskViewModal(false)
     } catch (error) {
@@ -368,8 +358,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleUnassignTask = async () => {
-    console.log("Unassigning task with ID:", selectedTask.Task_id)
-
     if (taskData.newNote?.trim()) {
       try {
         await handleSaveNotes()
@@ -385,7 +373,6 @@ const AppPage = ({ currentUser }) => {
         Task_id: selectedTask.Task_id,
         Task_owner: currentUser.username // Include current user as owner
       })
-      console.log("Task unassigned successfully:", response.data)
       fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
@@ -395,8 +382,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReviewTask = async () => {
-    console.log("Reviewing task with ID:", selectedTask.Task_id)
-
     if (taskData.newNote?.trim()) {
       try {
         await handleSaveNotes()
@@ -413,7 +398,6 @@ const AppPage = ({ currentUser }) => {
         app_acronym: selectedTask.Task_app_Acronym,
         Task_owner: currentUser.username // Include current user as owner
       })
-      console.log("Task reviewed successfully:", response.data)
       fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
@@ -423,8 +407,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleApproveTask = async () => {
-    console.log("Approving task with ID:", selectedTask.Task_id)
-
     if (taskData.newNote?.trim()) {
       try {
         await handleSaveNotes()
@@ -440,7 +422,6 @@ const AppPage = ({ currentUser }) => {
         Task_id: selectedTask.Task_id,
         Task_owner: currentUser.username // Include current user as owner
       })
-      console.log("Task approved successfully:", response.data)
       fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
@@ -450,8 +431,6 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleRejectTask = async () => {
-    console.log("Rejecting task with ID:", selectedTask.Task_id)
-
     if (taskData.newNote?.trim()) {
       try {
         await handleSaveNotes()
@@ -473,7 +452,6 @@ const AppPage = ({ currentUser }) => {
       }
 
       const response = await axios.put("http://localhost:3000/reject-task", requestData)
-      console.log("Task rejected successfully:", response.data)
       fetchTasks()
       setShowTaskViewModal(false)
     } catch (error) {
@@ -541,7 +519,6 @@ const AppPage = ({ currentUser }) => {
 
   useEffect(() => {
     // Fetch currentUser data here if needed
-    console.log("Current User Data:", currentUser)
   }, [currentUser])
 
   useEffect(() => {
