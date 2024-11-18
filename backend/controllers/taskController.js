@@ -335,17 +335,15 @@ exports.createTask = [
 ]
 
 exports.releaseTask = async (req, res) => {
-  const { Task_id, App_Acronym } = req.body
+  const { Task_id, App_Acronym, Task_owner } = req.body // Accept Task_owner
   const newState = "To-Do"
   const currentState = "Open"
-  const Task_owner = req.user?.username || "unknown" // Get the current user
 
-  if (!Task_id || !App_Acronym) {
-    return res.status(400).send("Task_id and App_Acronym are required.")
+  if (!Task_id || !App_Acronym || !Task_owner) {
+    return res.status(400).send("Task_id, App_Acronym, and Task_owner are required.")
   }
 
   try {
-    // Fetch the existing task state and notes to verify current state and task existence
     const [[existingTask]] = await db.execute("SELECT Task_state, Task_notes FROM Task WHERE Task_id = ? AND Task_app_Acronym = ?", [Task_id, App_Acronym])
 
     if (!existingTask) {
@@ -356,7 +354,6 @@ exports.releaseTask = async (req, res) => {
       return res.status(400).send(`Task must be in '${currentState}' state to be released.`)
     }
 
-    // Append new notes
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
@@ -365,7 +362,6 @@ TASK RELEASED [${Task_owner}, promoted from '${currentState}' state to '${newSta
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the state, notes, and task owner
     const query = `
       UPDATE Task 
       SET Task_state = ?, Task_notes = ?, Task_owner = ? 
@@ -385,24 +381,17 @@ ${existingTask.Task_notes || ""}
 
 // Assign Task to Developer (Developer)
 exports.assignTask = async (req, res) => {
-  const { Task_id } = req.body
+  const { Task_id, Task_owner } = req.body // Accept Task_owner
   const newState = "Doing"
   const currentState = "To-Do"
-  const Task_owner = req.user?.username || "unknown"
-
-  if (!Task_owner) {
-    return res.status(401).send("User information missing. Cannot assign task.")
-  }
 
   try {
-    // Retrieve existing task notes before updating
     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
 
     if (!existingTask) {
       return res.status(404).send("Task not found or cannot be assigned.")
     }
 
-    // Append new notes
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
@@ -411,7 +400,6 @@ TASK ASSIGNED [${Task_owner}, promoted from '${currentState}' state to '${newSta
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the task state, owner, and notes
     const query = `
       UPDATE Task 
       SET Task_owner = ?, Task_state = ?, Task_notes = ? 
@@ -470,16 +458,17 @@ ${existingTask.Task_notes || ""}
 //     res.status(500).send("Error unassigning task.")
 //   }
 // }
+
 // Unassign Task (Developer)
 exports.unassignTask = async (req, res) => {
   const { Task_id } = req.body
   const newState = "To-Do"
   const currentState = "Doing"
-  const Task_owner = req.user?.username || "unknown"
+  const Task_owner = req.user?.username || "unknown" // Use the current user who unassigns the task as Task_owner
 
   try {
     // Retrieve existing task notes and state before updating
-    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state, Task_owner FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
+    const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
 
     if (!existingTask) {
       return res.status(404).send("Task not found or cannot be unassigned.")
@@ -494,12 +483,12 @@ TASK UNASSIGNED [${Task_owner}, demoted from '${currentState}' state to '${newSt
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the task state and notes only, keeping the current owner
+    // Update the task state, notes, and keep the current owner as the user performing the action
     const query = `
       UPDATE Task 
-      SET Task_state = ?, Task_notes = ? 
+      SET Task_state = ?, Task_notes = ?, Task_owner = ? 
       WHERE Task_id = ? AND Task_state = ?`
-    const [result] = await db.execute(query, [newState, newNotes, Task_id, currentState])
+    const [result] = await db.execute(query, [newState, newNotes, Task_owner, Task_id, currentState])
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or cannot be unassigned.")
@@ -585,7 +574,8 @@ ${existingTask.Task_notes || ""}
           from: "tms@tms.com",
           to: emails.flat(),
           subject: `Task ${Task_id} has been moved to Done`,
-          text: `The task with ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. Please review if further action is required.`
+          text: `The task with ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. 
+          Please review if further action is required.`
         },
         (error, info) => {
           if (error) {
@@ -651,7 +641,7 @@ exports.rejectTask = async (req, res) => {
   const { Task_id, newPlan } = req.body // Accept newPlan as part of the request body
   const newState = "Doing"
   const currentState = "Done"
-  const Task_owner = req.user?.username || "unknown" // This will still be logged for notes but not update ownership
+  const Task_owner = req.user?.username || "unknown" // Set the user who rejects the task as the Task_owner
 
   try {
     // Retrieve existing task notes and state before updating
@@ -677,12 +667,12 @@ TASK REJECTED [${Task_owner}, demoted from '${currentState}' state to '${newStat
 ${existingTask.Task_notes || ""}
     `
 
-    // Update the task state, notes, and optionally the plan, without changing the owner
+    // Update the task state, notes, owner, and optionally the plan
     const query = `
       UPDATE Task 
-      SET Task_state = ?, Task_notes = ? ${planUpdateQuery}
+      SET Task_state = ?, Task_notes = ?, Task_owner = ? ${planUpdateQuery}
       WHERE Task_id = ? AND Task_state = ?`
-    const [result] = await db.execute(query, [newState, newNotes, ...planUpdateValues, Task_id, currentState])
+    const [result] = await db.execute(query, [newState, newNotes, Task_owner, ...planUpdateValues, Task_id, currentState])
 
     if (result.affectedRows === 0) {
       return res.status(404).send("Task not found or cannot be rejected.")

@@ -91,6 +91,31 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
+  const checkPermissionsForCreateTask = async () => {
+    try {
+      // Fetch the required group for creating tasks based on the appAcronym
+      const response = await axios.post("http://localhost:3000/get-app-permit-create", { appAcronym })
+      const appPermitCreate = response.data?.App_permit_Create
+      if (appPermitCreate) {
+        const hasPermission = await checkUserGroupPermission(appPermitCreate)
+        setHasGroupPermission(hasPermission)
+      }
+    } catch (error) {
+      console.error("Error checking permissions for creating tasks:", error)
+      setHasGroupPermission(false)
+    }
+  }
+
+  const checkPermissionsForCreatePlan = async () => {
+    try {
+      const hasPermission = await checkUserGroupPermission("PM")
+      setHasGroupPermission(hasPermission)
+    } catch (error) {
+      console.error("Error checking permissions for creating plans:", error)
+      setHasGroupPermission(false)
+    }
+  }
+
   const handleOpenPlanModal = () => {
     setShowPlanModal(true)
   }
@@ -314,26 +339,26 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReleaseTask = async () => {
-    console.log("Releasing task with ID:", selectedTask.Task_id, "and App_Acronym:", selectedTask.Task_app_Acronym)
+    console.log("Releasing task with ID:", selectedTask.Task_id)
 
-    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes() // Save notes before releasing
       } catch (error) {
-        console.error("Error saving notes before unassigning the task:", error)
-        setError("Unable to save notes. Task unassignment aborted.")
-        return // Stop execution if notes could not be saved
+        console.error("Error saving notes before releasing the task:", error)
+        setError("Unable to save notes. Task release aborted.")
+        return
       }
     }
 
     try {
       const response = await axios.put("http://localhost:3000/release-task", {
         Task_id: selectedTask.Task_id,
-        App_Acronym: selectedTask.Task_app_Acronym
+        App_Acronym: selectedTask.Task_app_Acronym,
+        Task_owner: currentUser.username // Include currentUser.username here
       })
       console.log("Task released successfully:", response.data)
-      fetchTasks()
+      fetchTasks() // Refresh tasks
       setShowTaskViewModal(false)
     } catch (error) {
       console.error("Error releasing task:", error.response?.data || error.message)
@@ -344,25 +369,24 @@ const AppPage = ({ currentUser }) => {
   const handleUnassignTask = async () => {
     console.log("Unassigning task with ID:", selectedTask.Task_id)
 
-    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes()
       } catch (error) {
         console.error("Error saving notes before unassigning the task:", error)
         setError("Unable to save notes. Task unassignment aborted.")
-        return // Stop execution if notes could not be saved
+        return
       }
     }
 
-    // Proceed with unassigning the task
     try {
       const response = await axios.put("http://localhost:3000/unassign-task", {
-        Task_id: selectedTask.Task_id
+        Task_id: selectedTask.Task_id,
+        Task_owner: currentUser.username // Include current user as owner
       })
       console.log("Task unassigned successfully:", response.data)
-      fetchTasks() // Refresh tasks
-      setShowTaskViewModal(false) // Close modal
+      fetchTasks()
+      setShowTaskViewModal(false)
     } catch (error) {
       console.error("Error unassigning task:", error.response?.data || error.message)
       setError("Unable to unassign task.")
@@ -372,26 +396,25 @@ const AppPage = ({ currentUser }) => {
   const handleReviewTask = async () => {
     console.log("Reviewing task with ID:", selectedTask.Task_id)
 
-    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes()
       } catch (error) {
         console.error("Error saving notes before reviewing the task:", error)
         setError("Unable to save notes. Task review aborted.")
-        return // Stop execution if notes could not be saved
+        return
       }
     }
 
-    // Proceed with reviewing the task
     try {
       const response = await axios.put("http://localhost:3000/review-task", {
         Task_id: selectedTask.Task_id,
-        app_acronym: selectedTask.Task_app_Acronym
+        app_acronym: selectedTask.Task_app_Acronym,
+        Task_owner: currentUser.username // Include current user as owner
       })
       console.log("Task reviewed successfully:", response.data)
-      fetchTasks() // Refresh tasks
-      setShowTaskViewModal(false) // Close modal
+      fetchTasks()
+      setShowTaskViewModal(false)
     } catch (error) {
       console.error("Error reviewing task:", error.response?.data || error.message)
       setError("Unable to review task.")
@@ -401,25 +424,24 @@ const AppPage = ({ currentUser }) => {
   const handleApproveTask = async () => {
     console.log("Approving task with ID:", selectedTask.Task_id)
 
-    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes()
       } catch (error) {
         console.error("Error saving notes before approving the task:", error)
         setError("Unable to save notes. Task approval aborted.")
-        return // Stop execution if notes could not be saved
+        return
       }
     }
 
-    // Proceed with approving the task
     try {
       const response = await axios.put("http://localhost:3000/approve-task", {
-        Task_id: selectedTask.Task_id
+        Task_id: selectedTask.Task_id,
+        Task_owner: currentUser.username // Include current user as owner
       })
       console.log("Task approved successfully:", response.data)
-      fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false) // Close modal
+      fetchTasks()
+      setShowTaskViewModal(false)
     } catch (error) {
       console.error("Error approving task:", error.response?.data || error.message)
       setError("Unable to approve task.")
@@ -429,32 +451,30 @@ const AppPage = ({ currentUser }) => {
   const handleRejectTask = async () => {
     console.log("Rejecting task with ID:", selectedTask.Task_id)
 
-    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes()
       } catch (error) {
         console.error("Error saving notes before rejecting the task:", error)
         setError("Unable to save notes. Task rejection aborted.")
-        return // Stop execution if notes could not be saved
+        return
       }
     }
 
-    // Proceed with rejecting the task
     try {
       const requestData = {
-        Task_id: selectedTask.Task_id
+        Task_id: selectedTask.Task_id,
+        Task_owner: currentUser.username // Include current user as owner
       }
 
-      // If the plan has changed, include the new plan in the request
       if (hasPlanChanged) {
         requestData.newPlan = taskData.Task_plan
       }
 
       const response = await axios.put("http://localhost:3000/reject-task", requestData)
       console.log("Task rejected successfully:", response.data)
-      fetchTasks() // Refresh the tasks list to show updated state
-      setShowTaskViewModal(false) // Close modal
+      fetchTasks()
+      setShowTaskViewModal(false)
     } catch (error) {
       console.error("Error rejecting task:", error.response?.data || error.message)
       setError("Unable to reject task.")
@@ -523,16 +543,29 @@ const AppPage = ({ currentUser }) => {
     console.log("Current User Data:", currentUser)
   }, [currentUser])
 
+  useEffect(() => {
+    if (appAcronym) {
+      checkPermissionsForCreateTask()
+      checkPermissionsForCreatePlan()
+    }
+  }, [appAcronym])
+
   return (
     <div className="app-page">
       <h3>{appAcronym}</h3>
       {successMessage && <div className="success-box">{successMessage}</div>}
-      <button onClick={handleOpenPlanModal} className="create-plan-button">
-        Create Plan
-      </button>
-      <button onClick={handleOpenTaskModal} className="create-task-button">
-        Create Task
-      </button>
+      {/* Conditionally render the "Create Plan" button */}
+      {hasGroupPermission && (
+        <button onClick={handleOpenPlanModal} className="create-plan-button">
+          Create Plan
+        </button>
+      )}
+      {/* Conditionally render the "Create Task" button */}
+      {hasGroupPermission && (
+        <button onClick={handleOpenTaskModal} className="create-task-button">
+          Create Task
+        </button>
+      )}
       <div className="task-columns">
         {["open", "todo", "doing", "done", "closed"].map(state => (
           <div key={state} className="task-column">
