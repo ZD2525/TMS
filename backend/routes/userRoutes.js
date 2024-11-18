@@ -33,13 +33,13 @@ router.post("/create-plan", verifyToken, CheckGroup("PM"), taskController.create
 router.post("/plans", verifyToken, taskController.getPlans) // No group restriction for viewing
 
 // Task Routes
-router.post("/create-task", verifyToken, CheckGroup("PL"), taskController.createTask) // Project Lead
-router.put("/release-task", verifyToken, CheckGroup("PM"), CheckTaskStatePermission, taskController.releaseTask) // Project Manager
-router.put("/assign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.assignTask) // Developer
-router.put("/unassign-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.unassignTask) // Developer
-router.put("/review-task", verifyToken, CheckGroup("Dev"), CheckTaskStatePermission, taskController.reviewTask) // Developer
-router.put("/approve-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.approveTask) // Project Lead
-router.put("/reject-task", verifyToken, CheckGroup("PL"), CheckTaskStatePermission, taskController.rejectTask) // Project Lead
+router.post("/create-task", verifyToken, taskController.createTask) // Project Lead
+router.put("/release-task", verifyToken, CheckTaskStatePermission, taskController.releaseTask) // Project Manager
+router.put("/assign-task", verifyToken, CheckTaskStatePermission, taskController.assignTask) // Developer
+router.put("/unassign-task", verifyToken, CheckTaskStatePermission, taskController.unassignTask) // Developer
+router.put("/review-task", verifyToken, CheckTaskStatePermission, taskController.reviewTask) // Developer
+router.put("/approve-task", verifyToken, CheckTaskStatePermission, taskController.approveTask) // Project Lead
+router.put("/reject-task", verifyToken, CheckTaskStatePermission, taskController.rejectTask) // Project Lead
 router.post("/tasks", verifyToken, taskController.getTasks) // No group restriction for viewing
 router.post("/task", verifyToken, taskController.viewTask)
 router.put("/save-task-notes", taskController.saveTaskNotes)
