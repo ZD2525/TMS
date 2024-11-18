@@ -188,7 +188,8 @@ const AppPage = ({ currentUser }) => {
     try {
       const response = await axios.put("http://localhost:3000/assign-task", {
         Task_id: selectedTask.Task_id,
-        App_Acronym: selectedTask.Task_app_Acronym
+        App_Acronym: selectedTask.Task_app_Acronym,
+        Task_owner: currentUser.username
       })
       console.log("Task assigned successfully:", response.data)
       fetchTasks() // Refresh tasks

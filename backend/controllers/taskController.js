@@ -315,7 +315,8 @@ exports.createTask = [
 
       const initialTaskState = "Open"
       const timestamp = getUTCPlus8Timestamp()
-      const formattedNote = `*************\nTASK CREATED [${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]\n`
+      const formattedNote = `*************\nTASK CREATED 
+      [${Task_creator}, promoted to '${initialTaskState}' state, ${timestamp}]\n`
 
       const query = `
         INSERT INTO Task 
@@ -357,7 +358,8 @@ exports.releaseTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK RELEASED [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK RELEASED 
+[${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 
 ${existingTask.Task_notes || ""}
     `
@@ -385,6 +387,13 @@ exports.assignTask = async (req, res) => {
   const newState = "Doing"
   const currentState = "To-Do"
 
+  console.log("Task_id:", Task_id)
+  console.log("Task_owner:", Task_owner)
+
+  if (!Task_id || !Task_owner) {
+    return res.status(400).send("Task_id and Task_owner are required.")
+  }
+
   try {
     const [[existingTask]] = await db.execute("SELECT Task_notes, Task_state FROM Task WHERE Task_id = ? AND Task_state = ?", [Task_id, currentState])
 
@@ -395,7 +404,8 @@ exports.assignTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK ASSIGNED [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK ASSIGNED 
+[${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 
 ${existingTask.Task_notes || ""}
     `
@@ -478,7 +488,8 @@ exports.unassignTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK UNASSIGNED [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK UNASSIGNED 
+[${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 
 ${existingTask.Task_notes || ""}
     `
@@ -524,7 +535,8 @@ exports.reviewTask = async (req, res) => {
     const timestamp = new Date().toISOString().replace("T", " ").split(".")[0]
     const newNotes = `
 *************
-TASK SENT FOR REVIEW [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK SENT FOR REVIEW 
+[${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 ${existingTask.Task_notes || ""}
     `
 
@@ -613,7 +625,8 @@ exports.approveTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK APPROVED AND CLOSED [${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK APPROVED AND CLOSED 
+[${Task_owner}, promoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 
 ${existingTask.Task_notes || ""}
     `
@@ -663,7 +676,8 @@ exports.rejectTask = async (req, res) => {
     const timestamp = getUTCPlus8Timestamp()
     const newNotes = `
 *************
-TASK REJECTED [${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
+TASK REJECTED 
+[${Task_owner}, demoted from '${currentState}' state to '${newState}' state, ${timestamp}]
 ${existingTask.Task_notes || ""}
     `
 
@@ -848,7 +862,8 @@ exports.saveTaskNotes = async (req, res) => {
 
     // Only add user-provided note if present
     if (newNote) {
-      noteEntry = `*************\n${newNote} [${username}, State: '${state}', ${timestamp}]`
+      noteEntry = `*************\n${newNote} 
+      [${username}, State: '${state}', ${timestamp}]`
     }
 
     // If no note is provided, ensure we still handle possible plan changes
