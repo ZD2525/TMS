@@ -50,7 +50,7 @@ exports.createApplicationValidationRules = [
     .isISO8601()
     .withMessage("Invalid date format for end date.")
     .custom((value, { req }) => {
-      if (new Date(value) <= new Date(req.body.App_startDate)) {
+      if (new Date(value) < new Date(req.body.App_startDate)) {
         throw new Error("End date must be later than start date.")
       }
       return true
@@ -86,7 +86,7 @@ exports.createApplication = [
     }
 
     const { App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create } = req.body
-
+    console.log(req.body)
     const query = `
       INSERT INTO APPLICATION 
       (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done, App_permit_Create) 
@@ -128,7 +128,7 @@ exports.updateApplicationValidationRules = [
     .isISO8601()
     .withMessage("Invalid date format for end date.")
     .custom((value, { req }) => {
-      if (new Date(value) <= new Date(req.body.App_startDate)) {
+      if (new Date(value) < new Date(req.body.App_startDate)) {
         throw new Error("End date must be later than start date.")
       }
       return true
@@ -221,7 +221,7 @@ exports.createPlanValidationRules = [
     .isISO8601()
     .withMessage("Invalid end date format.")
     .custom((value, { req }) => {
-      if (new Date(value) <= new Date(req.body.Plan_startDate)) {
+      if (new Date(value) < new Date(req.body.Plan_startDate)) {
         throw new Error("End date must be later than start date.")
       }
       return true
