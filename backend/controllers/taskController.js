@@ -571,9 +571,9 @@ ${existingTask.Task_notes || ""}
     if (emails.flat().filter(email => email !== "").length) {
       transporter.sendMail(
         {
-          from: "tms@tms.com",
+          from: "taskmanagementsystem@tms.com",
           to: emails.flat(),
-          subject: `Task ${Task_id} has been moved to Done`,
+          subject: `Task ${Task_id} has been moved to the 'Done' state`,
           text: `The task with ID ${Task_id} has been promoted to the 'Done' state by ${Task_owner}. 
           Please review if further action is required.`
         },
@@ -848,7 +848,7 @@ exports.saveTaskNotes = async (req, res) => {
 
     // Only add user-provided note if present
     if (newNote) {
-      noteEntry = `*************\n${newNote} [${username}, ${state}, ${timestamp}]`
+      noteEntry = `*************\n${newNote} [${username}, State: '${state}', ${timestamp}]`
     }
 
     // If no note is provided, ensure we still handle possible plan changes

@@ -230,31 +230,29 @@ const TaskManagementSystem = () => {
       <Modal isOpen={showCreateModal} onRequestClose={handleCloseModal} contentLabel={editMode ? "Edit Application Modal" : "Create Application Modal"} className="app-modal-content" overlayClassName="app-modal-overlay">
         <h2>{editMode ? "Edit App" : "Create App"}</h2>
         {error && <div className="error-box">{error}</div>}
-        <div className="form-group-row">
-          <div className="form-group">
-            <label>
-              App_Acronym:
-              <input
-                type="text"
-                name="App_Acronym"
-                value={formData.App_Acronym}
-                onChange={handleChange}
-                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
-              />
-            </label>
-          </div>
-          <div className="form-group">
-            <label>
-              RNumber:
-              <input
-                type="text"
-                name="App_Rnumber"
-                value={formData.App_Rnumber}
-                onChange={handleChange}
-                disabled={editMode} // Make it readonly only in edit mode
-              />
-            </label>
-          </div>
+        <div className="form-group">
+          <label>
+            App_Acronym:
+            <input
+              type="text"
+              name="App_Acronym"
+              value={formData.App_Acronym}
+              onChange={handleChange}
+              disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+            />
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            RNumber:
+            <input
+              type="text"
+              name="App_Rnumber"
+              value={formData.App_Rnumber}
+              onChange={handleChange}
+              disabled={editMode} // Make it readonly only in edit mode
+            />
+          </label>
         </div>
         <div className="form-group">
           <label>
@@ -262,31 +260,29 @@ const TaskManagementSystem = () => {
             <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} rows="4" />
           </label>
         </div>
-        <div className="form-group-row">
-          <div className="form-group">
-            <label>
-              Start Date:
-              <input
-                type="date"
-                name="App_startDate"
-                value={formData.App_startDate}
-                onChange={handleChange}
-                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
-              />
-            </label>
-          </div>
-          <div className="form-group">
-            <label>
-              End Date:
-              <input
-                type="date"
-                name="App_endDate"
-                value={formData.App_endDate}
-                onChange={handleChange}
-                disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
-              />
-            </label>
-          </div>
+        <div className="form-group">
+          <label>
+            Start Date:
+            <input
+              type="date"
+              name="App_startDate"
+              value={formData.App_startDate}
+              onChange={handleChange}
+              disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+            />
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            End Date:
+            <input
+              type="date"
+              name="App_endDate"
+              value={formData.App_endDate}
+              onChange={handleChange}
+              disabled={!editMode && !showCreateModal} // Ensure it's editable in edit mode or when creating
+            />
+          </label>
         </div>
         <div className="form-group">
           <label>
@@ -301,61 +297,57 @@ const TaskManagementSystem = () => {
             </select>
           </label>
         </div>
-        <div className="form-group-row">
-          <div className="form-group">
-            <label>
-              Permit Open:
-              <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
-                <option value="">Select Group</option>
-                {userGroups.map((group, index) => (
-                  <option key={index} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="form-group">
-            <label>
-              Permit Todo:
-              <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
-                <option value="">Select Group</option>
-                {userGroups.map((group, index) => (
-                  <option key={index} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <div className="form-group">
+          <label>
+            Permit Open:
+            <select name="App_permit_Open" value={formData.App_permit_Open} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        <div className="form-group-row">
-          <div className="form-group">
-            <label>
-              Permit Doing:
-              <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
-                <option value="">Select Group</option>
-                {userGroups.map((group, index) => (
-                  <option key={index} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="form-group">
-            <label>
-              Permit Done:
-              <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
-                <option value="">Select Group</option>
-                {userGroups.map((group, index) => (
-                  <option key={index} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <div className="form-group">
+          <label>
+            Permit Todo:
+            <select name="App_permit_toDoList" value={formData.App_permit_toDoList} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            Permit Doing:
+            <select name="App_permit_Doing" value={formData.App_permit_Doing} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="form-group">
+          <label>
+            Permit Done:
+            <select name="App_permit_Done" value={formData.App_permit_Done} onChange={handleChange}>
+              <option value="">Select Group</option>
+              {userGroups.map((group, index) => (
+                <option key={index} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <button onClick={handleSubmit}>{editMode ? "Update" : "Create"}</button>
         <button onClick={handleCloseModal}>Cancel</button>

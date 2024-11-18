@@ -134,7 +134,6 @@ h3 {
   z-index: 1100; /* Higher z-index than overlay */
 }
 
-/* Create Plan Modal */
 .create-plan-modal-content button {
   width: auto; /* Adjust the width as per your requirement */
   margin: 5px;
@@ -182,14 +181,15 @@ h3 {
   display: flex;
   justify-content: flex-end; /* Align buttons to the right */
   gap: 10px;
-  margin-top: auto; /* Pushes buttons to the bottom */
+  margin-top: 15px; /* Ensure proper spacing from above */
   padding-top: 15px;
+  align-items: center; /* Center-align items vertically */
 }
 
 .create-task-modal-content button {
-  width: fit-content;
-  padding: 10px 16px; /* Larger padding for buttons */
-  font-size: 14px; /* Increased font size for visibility */
+  width: auto; /* Ensure buttons are not stretched */
+  padding: 6px 12px; /* Adjusted padding for normal size */
+  font-size: 14px;
   cursor: pointer;
   border: none;
   border-radius: 4px;
@@ -201,8 +201,9 @@ h3 {
   background-color: #0056b3;
 }
 
-.create-task-modal-content button:hover {
-  background-color: #0056b3;
+/* General adjustments for buttons in modals */
+.modal-footer button {
+  margin: 0; /* Remove default margin for consistency */
 }
 
 .create-task-error-box {
