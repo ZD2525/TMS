@@ -33,11 +33,11 @@ exports.createApplicationValidationRules = [
     .notEmpty()
     .withMessage("App_Rnumber is required.")
     .matches(/^[0-9]+$/)
-    .withMessage("App_Rnumber must be a positive integer and cannot contain internal spaces.")
+    .withMessage("App_Rnumber must be a positive integer.")
     .custom(value => {
       const trimmedValue = value.trim()
       if (trimmedValue === "00" || Number(trimmedValue) < 0) {
-        throw new Error("App_Rnumber cannot be 00 or a negative number.")
+        throw new Error("App_Rnumber must be a positive integer.")
       }
       return true
     }),

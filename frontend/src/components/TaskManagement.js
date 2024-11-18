@@ -226,7 +226,7 @@ const TaskManagementSystem = () => {
         {error && <div className="error-box">{error}</div>}
         <div className="form-group">
           <label>
-            App_Acronym:
+            App_Acronym*:
             <input
               type="text"
               name="App_Acronym"
@@ -238,7 +238,7 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            RNumber:
+            RNumber*:
             <input
               type="text"
               name="App_Rnumber"
@@ -256,7 +256,7 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            Start Date:
+            Start Date*:
             <input
               type="date"
               name="App_startDate"
@@ -268,7 +268,7 @@ const TaskManagementSystem = () => {
         </div>
         <div className="form-group">
           <label>
-            End Date:
+            End Date*:
             <input
               type="date"
               name="App_endDate"

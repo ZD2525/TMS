@@ -321,7 +321,7 @@ button:hover {
 
 .task-notes {
   flex-grow: 1;
-  max-height: 300px;
+  max-height: 450px;
   overflow-y: auto;
   margin-bottom: 10px;
 }

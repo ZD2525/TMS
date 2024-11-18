@@ -70,10 +70,71 @@ const CheckGroup = groupname => async (req, res, next) => {
   }
 }
 
+// const CheckTaskStatePermission = async (req, res, next) => {
+//   try {
+//     const [[taskData]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ?", [req.body.Task_id])
+
+//     if (!taskData || !taskData.task_state || !taskData.task_app_acronym) {
+//       console.error("Task state or App Acronym not found")
+//       return res.status(404).send("Task not found")
+//     }
+
+//     const { task_state, task_app_acronym } = taskData
+//     const [[permissionsData]] = await db.execute("SELECT App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done FROM application WHERE App_Acronym = ?", [task_app_acronym])
+
+//     if (!permissionsData) {
+//       console.error("No permissions found for the given App_Acronym")
+//       return res.status(404).send("Application permissions not found")
+//     }
+
+//     const permissionMapping = {
+//       Open: "App_permit_Open",
+//       "To-Do": "App_permit_toDoList",
+//       Doing: "App_permit_Doing",
+//       Done: "App_permit_Done",
+//       Closed: "App_permit_Create"
+//     }
+
+//     const requiredPermissionKey = permissionMapping[task_state]
+//     if (!requiredPermissionKey || !permissionsData[requiredPermissionKey]) {
+//       console.error("Invalid or missing permission for task state")
+//       return res.status(403).send("Permission denied for the current task state.")
+//     }
+
+//     const requiredGroup = permissionsData[requiredPermissionKey]
+//     // Ensure `requiredGroup` is an array
+//     req.requiredGroup = requiredGroup ? [requiredGroup] : []
+//     next() // Proceed to the next middleware or route handler
+//   } catch (error) {
+//     console.error("Error in CheckTaskStatePermission middleware:", error)
+//     return res.status(500).send("Server error, try again later.")
+//   }
+// }
+
 const CheckTaskStatePermission = async (req, res, next) => {
   try {
-    const [[taskData]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ?", [req.body.Task_id])
+    if (!req.body.Task_id) {
+      // If Task_id is not provided, assume this is for checking create permission
+      if (!req.body.App_Acronym) {
+        console.error("App_Acronym is required for permission check")
+        return res.status(400).send("App_Acronym is required")
+      }
 
+      // Fetch permissions based on App_Acronym
+      const [[appData]] = await db.execute("SELECT App_permit_Create FROM application WHERE App_Acronym = ?", [req.body.App_Acronym])
+
+      if (!appData) {
+        console.error("No application data found for the given App_Acronym")
+        return res.status(404).send("Application data not found")
+      }
+
+      const requiredGroup = appData.App_permit_Create
+      req.requiredGroup = requiredGroup ? [requiredGroup] : []
+      return next() // Proceed with the next middleware or route handler
+    }
+
+    // Existing logic for Task_id-based permission checks
+    const [[taskData]] = await db.execute("SELECT task_state, task_app_acronym FROM task WHERE task_id = ?", [req.body.Task_id])
     if (!taskData || !taskData.task_state || !taskData.task_app_acronym) {
       console.error("Task state or App Acronym not found")
       return res.status(404).send("Task not found")
@@ -81,7 +142,6 @@ const CheckTaskStatePermission = async (req, res, next) => {
 
     const { task_state, task_app_acronym } = taskData
     const [[permissionsData]] = await db.execute("SELECT App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done FROM application WHERE App_Acronym = ?", [task_app_acronym])
-
     if (!permissionsData) {
       console.error("No permissions found for the given App_Acronym")
       return res.status(404).send("Application permissions not found")
@@ -102,7 +162,6 @@ const CheckTaskStatePermission = async (req, res, next) => {
     }
 
     const requiredGroup = permissionsData[requiredPermissionKey]
-    // Ensure `requiredGroup` is an array
     req.requiredGroup = requiredGroup ? [requiredGroup] : []
     next() // Proceed to the next middleware or route handler
   } catch (error) {

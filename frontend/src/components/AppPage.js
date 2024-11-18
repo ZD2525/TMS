@@ -32,11 +32,38 @@ const AppPage = ({ currentUser }) => {
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const [logs, setLogs] = useState([])
+  const [hasTaskCreatePermission, setHasTaskCreatePermission] = useState(false)
+  const [hasPlanCreatePermission, setHasPlanCreatePermission] = useState(false)
   const [hasGroupPermission, setHasGroupPermission] = useState(false)
 
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
+  // const fetchTasks = async () => {
+  //   if (!appAcronym) {
+  //     setError("No application selected.")
+  //     return
+  //   }
+  //   try {
+  //     const response = await axios.post("http://localhost:3000/tasks", {
+  //       App_Acronym: appAcronym
+  //     })
+  //     // Group tasks by their state
+  //     const groupedTasks = response.data.reduce(
+  //       (acc, task) => {
+  //         const stateKey = task.Task_state.toLowerCase().replace(/-/g, "")
+  //         if (!acc[stateKey]) acc[stateKey] = []
+  //         acc[stateKey].push(task)
+  //         return acc
+  //       },
+  //       { open: [], todo: [], doing: [], done: [], closed: [] }
+  //     )
+
+  //     setTasks(groupedTasks)
+  //   } catch (error) {
+  //     console.error("Error fetching tasks:", error)
+  //   }
+  // }
   const fetchTasks = async () => {
     if (!appAcronym) {
       setError("No application selected.")
@@ -46,7 +73,6 @@ const AppPage = ({ currentUser }) => {
       const response = await axios.post("http://localhost:3000/tasks", {
         App_Acronym: appAcronym
       })
-      // Group tasks by their state
       const groupedTasks = response.data.reduce(
         (acc, task) => {
           const stateKey = task.Task_state.toLowerCase().replace(/-/g, "")
@@ -58,6 +84,10 @@ const AppPage = ({ currentUser }) => {
       )
 
       setTasks(groupedTasks)
+
+      // Check permissions after fetching tasks
+      await checkPermissionsForCreateTask()
+      await checkPermissionsForCreatePlan()
     } catch (error) {
       console.error("Error fetching tasks:", error)
     }
@@ -68,7 +98,6 @@ const AppPage = ({ currentUser }) => {
       setError("No application selected.")
       return
     }
-
     try {
       const response = await axios.post("http://localhost:3000/plans", { appAcronym })
       setPlans(response.data)
@@ -89,26 +118,29 @@ const AppPage = ({ currentUser }) => {
 
   const checkPermissionsForCreateTask = async () => {
     try {
-      // Fetch the required group for creating tasks based on the appAcronym
-      const response = await axios.post("http://localhost:3000/get-app-permit-create", { appAcronym })
-      const appPermitCreate = response.data?.App_permit_Create
-      if (appPermitCreate) {
-        const hasPermission = await checkUserGroupPermission(appPermitCreate)
-        setHasGroupPermission(hasPermission)
+      const appResponse = await axios.get("http://localhost:3000/applications")
+      const appDetails = appResponse.data?.find(app => app.App_Acronym === appAcronym)
+      if (!appDetails || !appDetails.App_permit_Create) {
+        console.error("No matching application or `app_permit_create` value found.")
+        setHasTaskCreatePermission(false)
+        return
       }
+      const appPermitCreate = appDetails.App_permit_Create
+      const hasPermission = await checkUserGroupPermission(appPermitCreate)
+      setHasTaskCreatePermission(hasPermission)
     } catch (error) {
       console.error("Error checking permissions for creating tasks:", error)
-      setHasGroupPermission(false)
+      setHasTaskCreatePermission(false)
     }
   }
 
   const checkPermissionsForCreatePlan = async () => {
     try {
       const hasPermission = await checkUserGroupPermission("PM")
-      setHasGroupPermission(hasPermission)
+      setHasPlanCreatePermission(hasPermission)
     } catch (error) {
       console.error("Error checking permissions for creating plans:", error)
-      setHasGroupPermission(false)
+      setHasPlanCreatePermission(false)
     }
   }
 
@@ -540,13 +572,12 @@ const AppPage = ({ currentUser }) => {
       <h3>{appAcronym}</h3>
       {successMessage && <div className="success-box">{successMessage}</div>}
       {/* Conditionally render the "Create Plan" button */}
-      {hasGroupPermission && (
+      {hasPlanCreatePermission && (
         <button onClick={handleOpenPlanModal} className="create-plan-button">
           Create Plan
         </button>
       )}
-      {/* Conditionally render the "Create Task" button */}
-      {hasGroupPermission && (
+      {hasTaskCreatePermission && (
         <button onClick={handleOpenTaskModal} className="create-task-button">
           Create Task
         </button>
@@ -622,7 +653,7 @@ const AppPage = ({ currentUser }) => {
                   <input type="text" value={taskData.Task_createDate} readOnly />
                   <label>Status:</label>
                   <input type="text" value={taskData.Task_state} readOnly />
-                  <label>Task Name:</label>
+                  <label>Task Name*:</label>
                   <input type="text" name="Task_name" value={taskData.Task_name} onChange={handleTaskChange} />
                   <label>Task Owner:</label>
                   <input type="text" value={taskData.Task_owner} readOnly />
