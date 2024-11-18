@@ -203,7 +203,7 @@ const TaskManagementSystem = () => {
                 <strong>App Name: </strong>
                 {app.App_Acronym}
               </p>
-              <p>
+              <p className="app-description">
                 <strong>Description:</strong> {app.App_Description}
               </p>
               <p>

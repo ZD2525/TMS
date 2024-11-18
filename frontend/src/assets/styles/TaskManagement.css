@@ -54,6 +54,17 @@
   margin: 5px 0;
 }
 
+.app-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limits to 2 lines */
+  line-clamp: 2; /* Standard property */
+  -webkit-box-orient: vertical;
+  line-height: 1.2em; /* Adjust line height as needed */
+  max-height: 2.4em; /* 2 lines multiplied by line height */
+}
+
 .view-application-button {
   display: block;
   width: 100%; /* Makes the button span the full width of the parent element */
