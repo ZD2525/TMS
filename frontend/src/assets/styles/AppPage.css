@@ -93,6 +93,14 @@ button:hover {
 .task-card p {
   margin: 5px 0;
   color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  line-clamp: 2; /* Standard property */
+  -webkit-box-orient: vertical;
+  line-height: 1.2em; /* Adjust as needed */
+  max-height: 2.4em; /* 2 lines x line-height */
 }
 
 .task-card-footer {
@@ -189,17 +197,18 @@ button:hover {
   flex-direction: column;
 }
 
-/* Modal Footer Buttons for Create Task */
 .create-task-modal-content .task-logs-section {
   display: flex;
   flex-direction: column;
+  justify-content: space-between; /* Stretch to occupy space */
+  height: 100%;
 }
 
 .create-task-modal-content .task-logs-section .modal-footer {
   display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-  margin-top: 15px;
+  justify-content: flex-end; /* Align buttons to the right */
+  margin-top: auto; /* Push footer to the bottom */
+  padding: 10px; /* Optional: Adjust padding as needed */
 }
 
 .create-task-modal-content .task-logs-section button {
@@ -300,6 +309,19 @@ button:hover {
   padding: 8px;
 }
 
+.task-creation-section textarea[readonly],
+.task-modal-container textarea[readonly] {
+  max-height: 200px; /* Set a maximum height */
+  overflow-y: scroll; /* Enable scrolling */
+  resize: vertical; /* Allow vertical resizing */
+  background-color: #e1e1e1; /* Ensure consistent styling for read-only */
+  cursor: text; /* Use text cursor to indicate it's for reading */
+  padding: 6px; /* Adjust padding if needed */
+  scrollbar-width: auto; /* For Firefox */
+  -ms-overflow-style: auto; /* For Internet Explorer and Edge */
+  pointer-events: auto; /* Ensure it can be interacted with */
+}
+
 .task-creation-section {
   display: flex;
   flex-direction: column;
@@ -314,9 +336,11 @@ button:hover {
 .task-logs-section {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  height: 100%;
+  justify-content: space-between;
+  flex-grow: 1; /* This will allow the section to expand within the container */
   padding: 10px;
+  box-sizing: border-box;
+  overflow-y: auto; /* If needed */
 }
 
 .task-notes {
