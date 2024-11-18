@@ -30,6 +30,15 @@ h2 {
   border-radius: 8px;
 }
 
+.toggle-password-button {
+  color: black;
+  background-color: lightgrey;
+}
+
+.toggle-password-button:hover {
+  background-color: rgb(188, 188, 188);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
