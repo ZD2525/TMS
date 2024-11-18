@@ -75,19 +75,20 @@
 }
 /* Apply to all buttons in the user management page */
 /* General Button Styling */
-button {
+/* Apply only to buttons inside .user-management-container */
+.user-management-container button {
   padding: 8px 12px;
   font-size: 14px;
-  border: 2px solid black; /* Solid black border */
+  border: 2px solid black;
   border-radius: 4px;
   cursor: pointer;
   outline: none;
-  background-color: white; /* White background */
-  color: black; /* Black text color */
+  background-color: white;
+  color: black;
 }
 
 /* Hover State */
-button:hover {
+.user-management-container button:hover {
   background-color: #cacaca;
 }
 

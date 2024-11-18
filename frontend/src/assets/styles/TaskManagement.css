@@ -87,13 +87,13 @@
 
 .app-modal-content {
   background: white;
-  padding: 20px;
+  padding: 15px; /* Reduce padding */
   border-radius: 5px;
-  width: 100%;
-  max-width: 600px; /* Ensures a more compact modal */
+  width: 90%;
+  max-width: 900px;
   height: auto;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100vh - 40px); /* Ensures it doesn't overflow viewport */
+  overflow-y: auto; /* Keeps scrolling if absolutely necessary */
   box-sizing: border-box;
 }
 
