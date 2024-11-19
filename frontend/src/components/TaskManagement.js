@@ -203,7 +203,7 @@ const TaskManagementSystem = () => {
                 <strong>App Name: </strong>
                 {app.App_Acronym}
               </p>
-              <label>
+              <p>
                 <strong>Description:</strong>
                 <textarea
                   value={app.App_Description}
@@ -211,7 +211,7 @@ const TaskManagementSystem = () => {
                   rows={4} // Adjust the number of rows as needed
                   className="app-description-textarea"
                 />
-              </label>
+              </p>
               <p>
                 <strong>Start Date:</strong> {new Date(app.App_startDate).toLocaleDateString()}
               </p>
