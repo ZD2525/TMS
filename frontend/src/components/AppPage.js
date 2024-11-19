@@ -365,9 +365,10 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReleaseTask = async () => {
+    // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes(true) // Pass true to suppress success message during release
+        await handleSaveNotes(true) // Call the save notes function with suppressSuccessMessage set to true
       } catch (error) {
         console.error("Error saving notes before releasing the task:", error)
         setError("Unable to save notes. Task release aborted.")
@@ -385,13 +386,15 @@ const AppPage = ({ currentUser }) => {
       // Conditionally include new plan data if there is a change
       if (hasPlanChanged) {
         requestData.newPlan = taskData.Task_plan
-        setHasPlanChanged(false) // Reset hasPlanChanged to ensure clean state
+        setHasPlanChanged(false) // Reset hasPlanChanged to ensure a clean state
       }
 
       // Make the API request to release the task
       await axios.put("http://localhost:3000/release-task", requestData)
-      fetchTasks() // Refresh tasks
-      setShowTaskViewModal(false) // Close modal
+
+      // Fetch tasks to refresh the view
+      await fetchTasks()
+      setShowTaskViewModal(false) // Close the modal
     } catch (error) {
       console.error("Error releasing task:", error.response?.data || error.message)
       setError("Unable to release task.")
