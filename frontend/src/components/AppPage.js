@@ -39,31 +39,6 @@ const AppPage = ({ currentUser }) => {
   const location = useLocation()
   const { appAcronym } = location.state || {}
 
-  // const fetchTasks = async () => {
-  //   if (!appAcronym) {
-  //     setError("No application selected.")
-  //     return
-  //   }
-  //   try {
-  //     const response = await axios.post("http://localhost:3000/tasks", {
-  //       App_Acronym: appAcronym
-  //     })
-  //     // Group tasks by their state
-  //     const groupedTasks = response.data.reduce(
-  //       (acc, task) => {
-  //         const stateKey = task.Task_state.toLowerCase().replace(/-/g, "")
-  //         if (!acc[stateKey]) acc[stateKey] = []
-  //         acc[stateKey].push(task)
-  //         return acc
-  //       },
-  //       { open: [], todo: [], doing: [], done: [], closed: [] }
-  //     )
-
-  //     setTasks(groupedTasks)
-  //   } catch (error) {
-  //     console.error("Error fetching tasks:", error)
-  //   }
-  // }
   const fetchTasks = async () => {
     if (!appAcronym) {
       setError("No application selected.")
@@ -202,7 +177,7 @@ const AppPage = ({ currentUser }) => {
     // Save notes first if there are any notes entered
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Call the save notes function
+        await handleSaveNotes(true) // Call the save notes function
       } catch (error) {
         console.error("Error saving notes before assigning the task:", error)
         setError("Unable to save notes. Task assignment aborted.")
@@ -396,7 +371,7 @@ const AppPage = ({ currentUser }) => {
   const handleUnassignTask = async () => {
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes()
+        await handleSaveNotes(true)
       } catch (error) {
         console.error("Error saving notes before unassigning the task:", error)
         setError("Unable to save notes. Task unassignment aborted.")
@@ -420,7 +395,7 @@ const AppPage = ({ currentUser }) => {
   const handleReviewTask = async () => {
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes()
+        await handleSaveNotes(true)
       } catch (error) {
         console.error("Error saving notes before reviewing the task:", error)
         setError("Unable to save notes. Task review aborted.")
@@ -445,7 +420,7 @@ const AppPage = ({ currentUser }) => {
   const handleApproveTask = async () => {
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes()
+        await handleSaveNotes(true)
       } catch (error) {
         console.error("Error saving notes before approving the task:", error)
         setError("Unable to save notes. Task approval aborted.")
@@ -469,7 +444,7 @@ const AppPage = ({ currentUser }) => {
   const handleRejectTask = async () => {
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes()
+        await handleSaveNotes(true)
       } catch (error) {
         console.error("Error saving notes before rejecting the task:", error)
         setError("Unable to save notes. Task rejection aborted.")
@@ -526,8 +501,11 @@ const AppPage = ({ currentUser }) => {
         }))
         await fetchTasks()
         setHasPlanChanged(false)
-        setSuccessMessage("Task saved successfully.")
-        setTimeout(() => setSuccessMessage(""), 2000)
+        if (!isPartOfRelease) {
+          // Only set success message if not part of release
+          setSuccessMessage("Task saved successfully.")
+          setTimeout(() => setSuccessMessage(""), 2000)
+        }
         return // Exit after saving plan change
       } catch (error) {
         console.error("Error saving plan changes:", error)
@@ -572,8 +550,11 @@ const AppPage = ({ currentUser }) => {
       await fetchTasks()
       setHasPlanChanged(false)
       setError("")
-      setSuccessMessage("Task saved successfully.")
-      setTimeout(() => setSuccessMessage(""), 2000)
+      if (!isPartOfRelease) {
+        // Only set success message if not part of release
+        setSuccessMessage("Task saved successfully.")
+        setTimeout(() => setSuccessMessage(""), 2000)
+      }
     } catch (error) {
       console.error("Error saving changes:", error)
       setError("Unable to save changes.")

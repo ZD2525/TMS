@@ -17,7 +17,7 @@ exports.createApplicationValidationRules = [
   body("App_Acronym")
     .notEmpty()
     .withMessage("App Acronym is mandatory.")
-    .matches(/^[a-zA-Z0-9 ]*$/)
+    .matches(/^[a-zA-Z0-9 _-]*$/)
     .withMessage("App Acronym must be alphanumeric and can contain spaces.")
     .isLength({ max: 50 })
     .withMessage("App Acronym must not exceed 50 characters.")
@@ -31,7 +31,7 @@ exports.createApplicationValidationRules = [
 
   body("App_Rnumber")
     .notEmpty()
-    .withMessage("App_Rnumber is required.")
+    .withMessage("App_Rnumber is Mandatory.")
     .matches(/^[0-9]+$/)
     .withMessage("App_Rnumber must be a positive integer.")
     .custom(value => {
@@ -42,11 +42,11 @@ exports.createApplicationValidationRules = [
       return true
     }),
 
-  body("App_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid date format for start date."),
+  body("App_startDate").notEmpty().withMessage("Start date is Mandatory.").isISO8601().withMessage("Invalid date format for start date."),
 
   body("App_endDate")
     .notEmpty()
-    .withMessage("End date is required.")
+    .withMessage("End date is Mandatory.")
     .isISO8601()
     .withMessage("Invalid date format for end date.")
     .custom((value, { req }) => {
@@ -105,13 +105,13 @@ exports.updateApplicationValidationRules = [
   body("App_Acronym")
     .notEmpty()
     .withMessage("Application Acronym is mandatory.")
-    .matches(/^[a-zA-Z0-9 ]*$/)
+    .matches(/^[a-zA-Z0-9 _-]*$/)
     .withMessage("Application Acronym must be alphanumeric and can contain spaces.")
     .isLength({ max: 50 })
     .withMessage("Application Acronym must not exceed 50 characters."),
   body("App_Rnumber")
     .notEmpty()
-    .withMessage("App_Rnumber is required.")
+    .withMessage("App_Rnumber is mandatory.")
     .matches(/^[0-9]+$/)
     .withMessage("App_Rnumber must be a positive integer and cannot contain internal spaces.")
     .custom(value => {
@@ -120,10 +120,10 @@ exports.updateApplicationValidationRules = [
       }
       return true
     }),
-  body("App_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid date format for start date."),
+  body("App_startDate").notEmpty().withMessage("Start date is mandatory.").isISO8601().withMessage("Invalid date format for start date."),
   body("App_endDate")
     .notEmpty()
-    .withMessage("End date is required.")
+    .withMessage("End date is mandatory.")
     .isISO8601()
     .withMessage("Invalid date format for end date.")
     .custom((value, { req }) => {
@@ -213,10 +213,10 @@ exports.getApplications = async (req, res) => {
 exports.createPlanValidationRules = [
   body("Plan_MVP_name")
     .notEmpty()
-    .withMessage("Plan name is required.")
+    .withMessage("Plan name is mandatory.")
     .isLength({ min: 1, max: 255 })
     .withMessage("Plan name must have a maximum of 255 characters.")
-    .matches(/^[a-zA-Z0-9 ]*$/)
+    .matches(/^[a-zA-Z0-9 _-]*$/)
     .withMessage("Plan name must be alphanumeric and can contain spaces."),
   body("Plan_app_Acronym").notEmpty().withMessage("Plan app acronym is required.").isString().withMessage("Plan app acronym must be a string."),
   body("Plan_startDate").optional().isISO8601().withMessage("Plan start date is mandatory."),
@@ -300,7 +300,7 @@ exports.getPlans = async (req, res) => {
   const { appAcronym } = req.body
 
   if (!appAcronym) {
-    return res.status(400).send("App Acronym is required.")
+    return res.status(400).send("App Acronym is mandatory.")
   }
 
   const query = `
@@ -326,7 +326,7 @@ exports.createTaskValidationRules = [
     .withMessage("Task name is mandatory.")
     .isLength({ max: 255 })
     .withMessage("Task name must have a maximum of 255 characters.")
-    .matches(/^[a-zA-Z0-9 ]*$/)
+    .matches(/^[a-zA-Z0-9 _-]*$/)
     .withMessage("Task name must be alphanumeric and can contain spaces."),
   body("Task_creator").notEmpty().withMessage("Task creator is required."),
   body("Task_owner").notEmpty().withMessage("Task owner is required."),
