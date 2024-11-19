@@ -641,9 +641,6 @@ const AppPage = ({ currentUser }) => {
             <button onClick={handleCreatePlan} className="create-button">
               Create
             </button>
-            <button onClick={handleClosePlanModal} className="cancel-button">
-              Cancel
-            </button>
           </div>
         </div>
       )}

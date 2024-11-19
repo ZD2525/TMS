@@ -3,7 +3,14 @@
   padding: 20px;
 }
 
+h2 {
+  text-align: center;
+}
+
 .create-app-button {
+  display: flex; /* Makes this a flex container */
+  justify-content: flex-end;
+  margin-left: auto; /* This will push the button to the right */
   margin-bottom: 20px;
   padding: 10px 20px;
   background-color: white;
@@ -110,21 +117,21 @@
 
 /* App Creation Modal Button Styles */
 .app-modal-content .create-button {
-  background-color: #28a745; /* Green */
-  color: white;
+  background-color: blue;
+  display: block; /* Makes the buttons block elements */
+  width: 100%; /* Makes the buttons take the full width of their container */
+  max-width: 400px;
+  margin: 0 auto 20px auto; /* Center the buttons and add a bottom margin */
+  padding: 10px 32px; /* Increase padding for a larger size */
+  font-size: 18px; /* Increase font size for better visibility */
+  text-align: center; /* Ensure text is centered */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .app-modal-content .create-button:hover {
-  background-color: #218838;
-}
-
-.app-modal-content .cancel-button {
-  background-color: #6c757d; /* Grey */
-  color: white;
-}
-
-.app-modal-content .cancel-button:hover {
-  background-color: #5a6268;
+  background-color: rgb(78, 78, 249);
 }
 
 .form-group {
