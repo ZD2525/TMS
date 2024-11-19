@@ -222,7 +222,7 @@ const TaskManagementSystem = () => {
         )}
       </div>
       <Modal isOpen={showCreateModal} onRequestClose={handleCloseModal} contentLabel={editMode ? "Edit Application Modal" : "Create Application Modal"} className="app-modal-content" overlayClassName="app-modal-overlay">
-        <h2>{editMode ? "Edit App" : "Create App"}</h2>
+        <h2>{editMode ? "Update App" : "Create App"}</h2>
         {error && <div className="error-box">{error}</div>}
         <div className="form-group">
           <label>

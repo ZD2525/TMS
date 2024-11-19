@@ -614,6 +614,13 @@ const AppPage = ({ currentUser }) => {
             <h2>Create Plan</h2>
             {error && <div className="create-plan-error-box">{error}</div>}
             <div className="form-group">
+              {/* Displaying the App Acronym */}
+              <label>
+                App Acronym:
+                <input type="text" value={appAcronym} readOnly style={{ backgroundColor: "#f0f0f0", color: "black", border: "1px solid #ccc", cursor: "not-allowed" }} />
+              </label>
+            </div>
+            <div className="form-group">
               <label>
                 Plan Name*:
                 <input type="text" name="Plan_MVP_name" value={planData.Plan_MVP_name} onChange={handleChange} />
