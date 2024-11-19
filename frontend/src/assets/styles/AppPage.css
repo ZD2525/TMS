@@ -90,17 +90,16 @@ button:hover {
   font-weight: bold;
 }
 
-.task-card p {
-  margin: 5px 0;
-  color: #555;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2; /* Limit to 2 lines */
-  line-clamp: 2; /* Standard property */
-  -webkit-box-orient: vertical;
-  line-height: 1.2em; /* Adjust as needed */
-  max-height: 2.4em; /* 2 lines x line-height */
+.task-description-textarea {
+  width: 100%;
+  resize: none; /* Disable resizing */
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0; /* Light grey background for disabled state */
+  color: #000; /* Ensure text is visible */
+  box-sizing: border-box;
+  margin-top: 5px; /* Optional: Add margin if needed */
 }
 
 .task-card-footer {

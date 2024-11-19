@@ -593,7 +593,12 @@ const AppPage = ({ currentUser }) => {
               return (
                 <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
                   <h3>{task.Task_id}</h3>
-                  <p>{task.Task_description || "No description provided."}</p>
+                  <textarea
+                    value={task.Task_description || "No description provided."}
+                    disabled
+                    rows={4} // Adjust the number of rows as needed
+                    className="task-description-textarea"
+                  />
                   <div className="task-card-footer">
                     <span className="plan-name" style={{ backgroundColor: planColor }}>
                       {task.Task_plan || "No Plan"}

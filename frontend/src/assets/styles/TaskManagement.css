@@ -62,14 +62,28 @@ h2 {
 }
 
 .app-description {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2; /* Limits to 2 lines */
-  line-clamp: 2; /* Standard property */
-  -webkit-box-orient: vertical;
-  line-height: 1.2em; /* Adjust line height as needed */
-  max-height: 2.4em; /* 2 lines multiplied by line height */
+  width: 100%;
+  resize: vertical; /* Allows the user to resize vertically if needed */
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit; /* Match the font of the surrounding text */
+  font-size: 14px; /* Adjust font size as needed */
+  line-height: 1.4; /* Adjust line-height as needed */
+  background-color: #f9f9f9; /* Optional: adjust background color */
+}
+
+.app-description-textarea {
+  width: 100%;
+  resize: none; /* Disable resizing */
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0; /* Light grey background for disabled state */
+  color: #000; /* Ensure text is visible */
+  box-sizing: border-box;
+  margin-top: 5px; /* Add margin if needed */
 }
 
 .view-application-button {

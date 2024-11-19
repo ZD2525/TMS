@@ -203,9 +203,15 @@ const TaskManagementSystem = () => {
                 <strong>App Name: </strong>
                 {app.App_Acronym}
               </p>
-              <p className="app-description">
-                <strong>Description:</strong> {app.App_Description}
-              </p>
+              <label>
+                <strong>Description:</strong>
+                <textarea
+                  value={app.App_Description}
+                  disabled
+                  rows={4} // Adjust the number of rows as needed
+                  className="app-description-textarea"
+                />
+              </label>
               <p>
                 <strong>Start Date:</strong> {new Date(app.App_startDate).toLocaleDateString()}
               </p>
@@ -251,7 +257,7 @@ const TaskManagementSystem = () => {
         <div className="form-group">
           <label>
             Description:
-            <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} rows="4" />
+            <textarea name="App_Description" value={formData.App_Description} onChange={handleChange} />
           </label>
         </div>
         <div className="form-group">
