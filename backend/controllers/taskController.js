@@ -212,16 +212,22 @@ exports.getApplications = async (req, res) => {
 }
 
 exports.createPlanValidationRules = [
-  body("Plan_MVP_name").notEmpty().withMessage("Plan name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan name must be alphanumeric have a maximum of 255 characters").isAlphanumeric().withMessage("Plan name must be alphanumeric have a maximum of 255 characters"),
+  body("Plan_MVP_name")
+    .notEmpty()
+    .withMessage("Plan name is required.")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Plan name must have a maximum of 255 characters.")
+    .matches(/^[a-zA-Z0-9 ]*$/)
+    .withMessage("Plan name must be alphanumeric and can contain spaces."),
   body("Plan_app_Acronym").notEmpty().withMessage("Plan app acronym is required.").isString().withMessage("Plan app acronym must be a string."),
   body("Plan_startDate").optional().isISO8601().withMessage("Plan start date is mandatory."),
   body("Plan_endDate")
-    .optional() // Make it optional initially for the same reason
+    .optional()
     .isISO8601()
-    .withMessage("Plan end date is mandatory")
+    .withMessage("Plan end date is mandatory.")
     .custom((value, { req }) => {
       if (new Date(value) < new Date(req.body.Plan_startDate)) {
-        throw new Error("Start date must be before end date")
+        throw new Error("Start date must be before end date.")
       }
       return true
     }),
@@ -315,7 +321,18 @@ exports.getPlans = async (req, res) => {
   }
 }
 
-exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is mandatory.").isLength({ max: 255 }).withMessage("Task name must be alphanumeric and have a maximum of 255 characters").isAlphanumeric().withMessage("Task name must be alphanumeric and have a maximum of 255 characters"), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
+exports.createTaskValidationRules = [
+  body("Task_name")
+    .notEmpty()
+    .withMessage("Task name is mandatory.")
+    .isLength({ max: 255 })
+    .withMessage("Task name must have a maximum of 255 characters.")
+    .matches(/^[a-zA-Z0-9 ]*$/)
+    .withMessage("Task name must be alphanumeric and can contain spaces."),
+  body("Task_creator").notEmpty().withMessage("Task creator is required."),
+  body("Task_owner").notEmpty().withMessage("Task owner is required."),
+  body("App_Acronym").notEmpty().withMessage("Application acronym is required.")
+]
 
 // Create a new task (Project Lead)
 exports.createTask = [

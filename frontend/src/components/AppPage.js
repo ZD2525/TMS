@@ -367,11 +367,11 @@ const AppPage = ({ currentUser }) => {
   const handleReleaseTask = async () => {
     if (taskData.newNote?.trim()) {
       try {
-        await handleSaveNotes() // Save notes before releasing
+        await handleSaveNotes(true) // Pass true to suppress success message during release
       } catch (error) {
         console.error("Error saving notes before releasing the task:", error)
         setError("Unable to save notes. Task release aborted.")
-        return
+        return // Stop execution if notes could not be saved
       }
     }
 
@@ -385,9 +385,11 @@ const AppPage = ({ currentUser }) => {
       // Conditionally include new plan data if there is a change
       if (hasPlanChanged) {
         requestData.newPlan = taskData.Task_plan
+        setHasPlanChanged(false) // Reset hasPlanChanged to ensure clean state
       }
 
-      const response = await axios.put("http://localhost:3000/release-task", requestData)
+      // Make the API request to release the task
+      await axios.put("http://localhost:3000/release-task", requestData)
       fetchTasks() // Refresh tasks
       setShowTaskViewModal(false) // Close modal
     } catch (error) {
@@ -499,7 +501,7 @@ const AppPage = ({ currentUser }) => {
     }
   }
 
-  const handleSaveNotes = async () => {
+  const handleSaveNotes = async (isPartOfRelease = false) => {
     if (!selectedTask) {
       setError("No task is selected.")
       return
@@ -507,7 +509,9 @@ const AppPage = ({ currentUser }) => {
 
     // Skip saving if there are no additional notes and no plan change
     if (!taskData.newNote && !hasPlanChanged) {
-      setError("No changes detected to save.")
+      if (!isPartOfRelease) {
+        setError("No changes detected to save.")
+      }
       return
     }
 
@@ -545,8 +549,19 @@ const AppPage = ({ currentUser }) => {
       // Refresh the task list to show the updated plan in the display
       await fetchTasks()
 
-      // Optionally, clear any error messages
+      // Clear any error messages
       setError("")
+
+      // Only show success message if this is not part of a release action
+      if (hasPlanChanged && !isPartOfRelease) {
+        setSuccessMessage("Plan changed successfully.")
+        setTimeout(() => {
+          setSuccessMessage("") // Clear the success message after 2 seconds
+        }, 2000)
+      }
+
+      // Reset the plan change state
+      setHasPlanChanged(false)
     } catch (error) {
       console.error("Error saving changes:", error)
       setError("Unable to save changes.")
@@ -572,7 +587,8 @@ const AppPage = ({ currentUser }) => {
   return (
     <div className="app-page">
       <h3>{appAcronym}</h3>
-      {successMessage && <div className="success-box">{successMessage}</div>}
+      {/* Background Success Message */}
+      {!showTaskViewModal && successMessage && <div className="success-box">{successMessage}</div>}
       {/* Conditionally render the "Create Plan" button */}
       {hasPlanCreatePermission && (
         <button onClick={handleOpenPlanModal} className="create-plan-button">
@@ -712,6 +728,8 @@ const AppPage = ({ currentUser }) => {
               {/* Task Creation / Details Section */}
               <div className="task-creation-section">
                 <h2>{selectedTask.Task_name}</h2>
+                {/* Success Message Box */}
+                {successMessage && <div className="success-box">{successMessage}</div>}
                 <div className="form-group">
                   {/* Task fields */}
                   <label>Creator:</label>
