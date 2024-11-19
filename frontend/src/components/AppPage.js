@@ -245,13 +245,15 @@ const AppPage = ({ currentUser }) => {
       Task_name: "",
       Task_owner: currentUser.username,
       Task_description: "",
-      Task_plan: "", // Clear the plan selection
-      Task_planStartDate: "", // Clear the plan start date
-      Task_planEndDate: "" // Clear the plan end date
+      Task_plan: "",
+      Task_planStartDate: "",
+      Task_planEndDate: ""
     })
     setLogs([])
     setError("")
-    setSelectedTask(null) // Clear selected task
+    setSuccessMessage("") // Clear success message on modal close
+    setHasPlanChanged(false)
+    setSelectedTask(null)
   }
 
   const handleCloseTaskViewModal = () => {
@@ -365,36 +367,26 @@ const AppPage = ({ currentUser }) => {
   }
 
   const handleReleaseTask = async () => {
-    // Save notes first if there are any notes entered
-    if (taskData.newNote?.trim()) {
-      try {
-        await handleSaveNotes(true) // Call the save notes function with suppressSuccessMessage set to true
-      } catch (error) {
-        console.error("Error saving notes before releasing the task:", error)
-        setError("Unable to save notes. Task release aborted.")
-        return // Stop execution if notes could not be saved
-      }
-    }
-
     try {
+      // Save notes or plan changes if needed
+      if (taskData.newNote?.trim() || hasPlanChanged) {
+        await handleSaveNotes(true)
+      }
+
       const requestData = {
         Task_id: selectedTask.Task_id,
         App_Acronym: selectedTask.Task_app_Acronym,
-        Task_owner: currentUser.username // Include current user as owner
+        Task_owner: currentUser.username
       }
 
-      // Conditionally include new plan data if there is a change
       if (hasPlanChanged) {
         requestData.newPlan = taskData.Task_plan
-        setHasPlanChanged(false) // Reset hasPlanChanged to ensure a clean state
       }
 
-      // Make the API request to release the task
       await axios.put("http://localhost:3000/release-task", requestData)
-
-      // Fetch tasks to refresh the view
+      setShowTaskViewModal(false)
       await fetchTasks()
-      setShowTaskViewModal(false) // Close the modal
+      setHasPlanChanged(false)
     } catch (error) {
       console.error("Error releasing task:", error.response?.data || error.message)
       setError("Unable to release task.")
@@ -510,8 +502,42 @@ const AppPage = ({ currentUser }) => {
       return
     }
 
-    // Skip saving if there are no additional notes and no plan change
-    if (!taskData.newNote && !hasPlanChanged) {
+    // Ensure plan changes are saved even if there are no notes
+    if (!taskData.newNote?.trim() && hasPlanChanged) {
+      try {
+        // Save plan change only
+        await axios.put("http://localhost:3000/save-task-notes", {
+          Task_id: selectedTask.Task_id,
+          Task_plan: taskData.Task_plan,
+          Task_owner: currentUser.username,
+          username: currentUser.username
+        })
+
+        // Fetch updated task details
+        const updatedTaskResponse = await axios.post("http://localhost:3000/task", {
+          taskId: selectedTask.Task_id
+        })
+
+        setSelectedTask(updatedTaskResponse.data)
+        setTaskData(prevData => ({
+          ...prevData,
+          Task_plan: updatedTaskResponse.data.Task_plan,
+          newNote: ""
+        }))
+        await fetchTasks()
+        setHasPlanChanged(false)
+        setSuccessMessage("Task saved successfully.")
+        setTimeout(() => setSuccessMessage(""), 2000)
+        return // Exit after saving plan change
+      } catch (error) {
+        console.error("Error saving plan changes:", error)
+        setError("Unable to save plan changes.")
+        return
+      }
+    }
+
+    // Handle new notes or plan changes
+    if (!taskData.newNote?.trim() && !hasPlanChanged) {
       if (!isPartOfRelease) {
         setError("No changes detected to save.")
       }
@@ -520,51 +546,34 @@ const AppPage = ({ currentUser }) => {
 
     try {
       let updatedPlan = selectedTask.Task_plan
-
-      // If there is a plan change, update the Task_plan field
       if (hasPlanChanged) {
-        updatedPlan = taskData.Task_plan // Update the plan to the new value
+        updatedPlan = taskData.Task_plan
       }
 
-      // Call the save-task-notes route
       await axios.put("http://localhost:3000/save-task-notes", {
         Task_id: selectedTask.Task_id,
         newNote: taskData.newNote ? taskData.newNote.trim() : undefined,
         Task_plan: hasPlanChanged ? updatedPlan : undefined,
-        Task_owner: currentUser.username, // Pass the current user as Task_owner
-        username: currentUser.username // Pass username to the backend if needed
+        Task_owner: currentUser.username,
+        username: currentUser.username
       })
 
-      // Fetch updated task details to reflect changes immediately
       const updatedTaskResponse = await axios.post("http://localhost:3000/task", {
         taskId: selectedTask.Task_id
       })
 
-      // Update the state of selectedTask and refresh the task data
       setSelectedTask(updatedTaskResponse.data)
       setTaskData(prevData => ({
         ...prevData,
         newNote: "",
-        Task_plan: updatedTaskResponse.data.Task_plan, // Update taskData with the new plan
-        Task_owner: currentUser.username // Update Task_owner
+        Task_plan: updatedTaskResponse.data.Task_plan,
+        Task_owner: currentUser.username
       }))
-
-      // Refresh the task list to show the updated plan in the display
       await fetchTasks()
-
-      // Clear any error messages
-      setError("")
-
-      // Only show success message if this is not part of a release action
-      if (hasPlanChanged && !isPartOfRelease) {
-        setSuccessMessage("Plan changed successfully.")
-        setTimeout(() => {
-          setSuccessMessage("") // Clear the success message after 2 seconds
-        }, 2000)
-      }
-
-      // Reset the plan change state
       setHasPlanChanged(false)
+      setError("")
+      setSuccessMessage("Task saved successfully.")
+      setTimeout(() => setSuccessMessage(""), 2000)
     } catch (error) {
       console.error("Error saving changes:", error)
       setError("Unable to save changes.")
@@ -613,7 +622,7 @@ const AppPage = ({ currentUser }) => {
                 <div key={task.Task_id} className="task-card" onClick={() => handleOpenTaskViewModal(task)}>
                   <h3>{task.Task_id}</h3>
                   <textarea
-                    value={task.Task_description || "No description provided."}
+                    value={task.Task_description}
                     disabled
                     rows={4} // Adjust the number of rows as needed
                     className="task-description-textarea"
