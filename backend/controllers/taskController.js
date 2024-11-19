@@ -212,45 +212,76 @@ exports.getApplications = async (req, res) => {
 }
 
 exports.createPlanValidationRules = [
-  body("Plan_MVP_name").notEmpty().withMessage("Plan name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan MVP name must be between 1 and 255 characters."),
+  body("Plan_MVP_name").notEmpty().withMessage("Plan name is required.").isLength({ min: 1, max: 255 }).withMessage("Plan name must be alphanumeric have a maximum of 255 characters").isAlphanumeric().withMessage("Plan name must be alphanumeric have a maximum of 255 characters"),
   body("Plan_app_Acronym").notEmpty().withMessage("Plan app acronym is required.").isString().withMessage("Plan app acronym must be a string."),
-  body("Plan_startDate").notEmpty().withMessage("Start date is required.").isISO8601().withMessage("Invalid start date format."),
+  body("Plan_startDate").optional().isISO8601().withMessage("Plan start date is mandatory."),
   body("Plan_endDate")
-    .notEmpty()
-    .withMessage("End date is required.")
+    .optional() // Make it optional initially for the same reason
     .isISO8601()
-    .withMessage("Invalid end date format.")
+    .withMessage("Plan end date is mandatory")
     .custom((value, { req }) => {
       if (new Date(value) < new Date(req.body.Plan_startDate)) {
-        throw new Error("End date must be later than start date.")
+        throw new Error("Start date must be before end date")
       }
       return true
     }),
   body("Plan_color").optional().isHexColor().withMessage("Plan color must be a valid hex color.")
 ]
 
-// Create a new plan (Project Manager)
 exports.createPlan = [
-  exports.createPlanValidationRules,
+  async (req, res, next) => {
+    // Step 1: Validate Plan_MVP_name and Plan_app_Acronym first
+    const { Plan_MVP_name, Plan_app_Acronym } = req.body
+
+    if (!Plan_MVP_name || !Plan_app_Acronym) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: [{ msg: "Plan name is mandatory." }]
+      })
+    }
+
+    // Check if Plan_MVP_name is unique within the specified Plan_app_Acronym
+    const uniquePlanQuery = `
+      SELECT 1 FROM Plan 
+      WHERE Plan_MVP_name = ? AND Plan_app_Acronym = ? 
+      LIMIT 1
+    `
+    try {
+      const [existingPlan] = await db.query(uniquePlanQuery, [Plan_MVP_name, Plan_app_Acronym])
+      if (existingPlan.length > 0) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: [{ msg: "Plan name must be unique." }]
+        })
+      }
+    } catch (error) {
+      console.error("Error checking plan uniqueness:", error)
+      return res.status(500).send("Error checking plan uniqueness.")
+    }
+
+    // Proceed to the next middleware if uniqueness check passes
+    next()
+  },
+  exports.createPlanValidationRules, // Now perform other validation rules
   async (req, res) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-      // Only return the first error encountered in a consistent format
       return res.status(400).json({
         error: "Validation failed",
-        details: [{ msg: errors.array()[0].msg }] // Wrap the first error in an array with the expected structure
+        details: [{ msg: errors.array()[0].msg }] // Return the first error
       })
     }
 
     const { Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color } = req.body
 
-    const query = `
+    // Step 3: Insert the new plan into the database
+    const insertQuery = `
       INSERT INTO Plan 
       (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) 
-      VALUES (?, ?, ?, ?, ?)`
-
+      VALUES (?, ?, ?, ?, ?)
+    `
     try {
-      await db.query(query, [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color])
+      await db.query(insertQuery, [Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color])
       res.send("Plan created successfully.")
     } catch (error) {
       console.error("Error creating plan:", error)
@@ -284,7 +315,7 @@ exports.getPlans = async (req, res) => {
   }
 }
 
-exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is mandatory.").isLength({ max: 255 }).withMessage("Task name must not exceed 255 characters."), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
+exports.createTaskValidationRules = [body("Task_name").notEmpty().withMessage("Task name is mandatory.").isLength({ max: 255 }).withMessage("Task name must be alphanumeric and have a maximum of 255 characters").isAlphanumeric().withMessage("Task name must be alphanumeric and have a maximum of 255 characters"), body("Task_creator").notEmpty().withMessage("Task creator is required."), body("Task_owner").notEmpty().withMessage("Task owner is required."), body("App_Acronym").notEmpty().withMessage("Application acronym is required.")]
 
 // Create a new task (Project Lead)
 exports.createTask = [
