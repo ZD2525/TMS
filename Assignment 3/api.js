@@ -210,9 +210,6 @@ exports.CreateTaskController = [
         await connection.commit()
 
         return res.json({
-          result: {
-            Task_id: newTaskId
-          },
           code: MsgCode.SUCCESS
         })
       } catch (transactionError) {
@@ -315,7 +312,7 @@ exports.GetTaskByStateController = [
       const [[app]] = await db.execute("SELECT App_Acronym FROM application WHERE App_Acronym = ?", [task_app_acronym])
       if (!app) {
         return res.json({
-          code: MsgCode.NOT_FOUND,
+          code: MsgCode.INVALID_INPUT,
           remarks: "Application not found."
         })
       }
@@ -361,7 +358,8 @@ exports.PromoteTask2DoneController = [
     try {
       // Define constants
       const mandatoryKeys = ["Task_id", "username", "password"]
-      const allowedKeys = [...mandatoryKeys]
+      const optionalKeys = ["task_notes"]
+      const allowedKeys = [...mandatoryKeys, ...optionalKeys]
       const contentType = req.headers["content-type"]
 
       // **P_002**: Check payload type
@@ -391,7 +389,7 @@ exports.PromoteTask2DoneController = [
       }
 
       // Extract fields from request body
-      const { Task_id, username, password } = req.body
+      const { Task_id, username, password, task_notes } = req.body
 
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
@@ -457,16 +455,25 @@ exports.PromoteTask2DoneController = [
       }
 
       // **T_002**: Validate application permissions for 'Done' state
-      const [[app]] = await db.execute("SELECT App_permit_Done FROM application WHERE App_Acronym = ?", [task.Task_app_Acronym])
-      if (!app || !app.App_permit_Done) {
+      const [[app]] = await db.execute("SELECT App_permit_Doing FROM application WHERE App_Acronym = ?", [task.Task_app_Acronym])
+      if (!app || !app.App_permit_Doing) {
         return res.json({
           code: MsgCode.NOT_AUTHORIZED,
-          remarks: "No permissions defined for the 'Done' state."
+          remarks: "No permissions defined for the 'Doing' state."
+        })
+      }
+
+      // **I_002**: Check if user is authorized for 'Done' state
+      const [[{ count }]] = await db.execute("SELECT COUNT(*) AS count FROM usergroup WHERE username = ? AND user_group = ?", [username, app.App_permit_Doing])
+      if (count === 0) {
+        return res.json({
+          code: MsgCode.NOT_AUTHORIZED,
+          remarks: "User is not authorized to promote tasks to 'Done' state."
         })
       }
 
       // Fetch users in the `App_permit_Done` group
-      const [groupUsers] = await db.execute("SELECT username FROM usergroup WHERE user_group = ?", [app.App_permit_Done])
+      const [groupUsers] = await db.execute("SELECT username FROM usergroup WHERE user_group = ?", [app.App_permit_Doing])
       const groupUsernames = groupUsers.map(user => user.username)
 
       // **T_002**: Fetch email addresses of users in the group
@@ -495,7 +502,8 @@ exports.PromoteTask2DoneController = [
 
       // **T_003**: Update task state and notes
       const timestamp = new Date().toISOString().split("T")[0]
-      const updatedNotes = `*************\nTask promoted to 'Done' by ${username} on ${timestamp}\n${task.Task_notes}`
+      const additionalNotes = task_notes ? `Additional Notes:\n${task_notes.trim()}\n` : ""
+      const updatedNotes = `*************\nTask promoted to 'Done' by ${username} on ${timestamp}\n${additionalNotes}${task.Task_notes}`
 
       await db.execute("UPDATE task SET Task_state = 'Done', Task_notes = ?, Task_owner = ? WHERE Task_id = ?", [updatedNotes, username, Task_id])
 
