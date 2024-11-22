@@ -39,7 +39,7 @@ app.use((err, req, res, next) => {
   next()
 })
 
-// Handle invalid routes (must be at the end)
+// Handle invalid routes
 app.use((req, res) => {
   res.status(400).json({
     MsgCode: "U_001",
