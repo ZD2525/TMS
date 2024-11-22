@@ -231,13 +231,13 @@ exports.GetTaskByStateController = [
 
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
-        return res.status(400).json({ code: "P_002", remarks: "Invalid payload type. Expected application/json." })
+        return res.json({ code: "P_002", remarks: "Invalid payload type. Expected application/json." })
       }
 
       // **P_001**: Check for missing mandatory keys
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
-        return res.status(400).json({ code: "P_001", remarks: `Missing mandatory keys: ${missingKeys.join(", ")}` })
+        return res.json({ code: "P_001", remarks: `Missing mandatory keys: ${missingKeys.join(", ")}` })
       }
 
       // Extract fields from request body
@@ -245,34 +245,34 @@ exports.GetTaskByStateController = [
 
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
-        return res.status(400).json({ code: "I_001", remarks: "Username or password must be a string." })
+        return res.json({ code: "I_001", remarks: "Username or password must be a string." })
       }
 
       if (username.length > 50 || password.length > 50) {
-        return res.status(400).json({ code: "I_001", remarks: "Username or password length exceeds maximum allowed length." })
+        return res.json({ code: "I_001", remarks: "Username or password length exceeds maximum allowed length." })
       }
 
       // **I_001**: Verify credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE username = ?", [username])
       if (!user) {
-        return res.status(404).json({ code: "I_001", remarks: "Username does not exist in the database." })
+        return res.json({ code: "I_001", remarks: "Username does not exist in the database." })
       }
       if (user.accountStatus.toLowerCase() !== "active") {
-        return res.status(403).json({ code: "I_001", remarks: "Account is not active." })
+        return res.json({ code: "I_001", remarks: "Account is not active." })
       }
       if (!bcrypt.compareSync(password, user.password)) {
-        return res.status(401).json({ code: "I_001", remarks: "Invalid credentials. Password does not match." })
+        return res.json({ code: "I_001", remarks: "Invalid credentials. Password does not match." })
       }
 
       // **T_002**: Validate application existence
       const [[app]] = await db.execute("SELECT App_Acronym FROM application WHERE App_Acronym = ?", [task_app_acronym])
       if (!app) {
-        return res.status(404).json({ code: "T_002", remarks: "Application not found." })
+        return res.json({ code: "T_002", remarks: "Application not found." })
       }
 
       // **T_001**: Validate task state
       if (!validStates.includes(task_state)) {
-        return res.status(400).json({
+        return res.json({
           code: "T_001",
           remarks: `Invalid task state. Allowed states: ${validStates.join(", ")}`
         })
@@ -283,14 +283,14 @@ exports.GetTaskByStateController = [
 
       // **T_002**: Handle no tasks found
       if (tasks.length === 0) {
-        return res.status(404).json({ code: "T_002", remarks: "No tasks found for the specified state and application." })
+        return res.json({ code: "T_002", remarks: "No tasks found for the specified state and application." })
       }
 
       // Success
-      return res.status(200).json({ code: "S_001", remarks: "Tasks retrieved successfully.", tasks })
+      return res.json({ code: "S_001", remarks: "Tasks retrieved successfully.", tasks })
     } catch (error) {
       console.error("Internal Server Error:", error)
-      return res.status(500).json({ code: "E_001", remarks: "Internal server error." })
+      return res.json({ code: "E_001", remarks: "Internal server error." })
     }
   }
 ]
@@ -305,7 +305,7 @@ exports.PromoteTask2DoneController = [
 
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
-        return res.status(400).json({
+        return res.json({
           code: "P_002",
           remarks: "Invalid payload type. Expected application/json."
         })
@@ -314,7 +314,7 @@ exports.PromoteTask2DoneController = [
       // **P_001**: Check for missing mandatory keys
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
-        return res.status(400).json({
+        return res.json({
           code: "P_001",
           remarks: `Missing mandatory keys: ${missingKeys.join(", ")}`
         })
@@ -325,14 +325,14 @@ exports.PromoteTask2DoneController = [
 
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
-        return res.status(400).json({
+        return res.json({
           code: "I_001",
           remarks: "Username or password must be a string."
         })
       }
 
       if (username.length > 50 || password.length > 50) {
-        return res.status(400).json({
+        return res.json({
           code: "I_001",
           remarks: "Username or password length exceeds maximum allowed length."
         })
@@ -341,21 +341,21 @@ exports.PromoteTask2DoneController = [
       // **I_001**: Verify credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE username = ?", [username])
       if (!user) {
-        return res.status(404).json({
+        return res.json({
           code: "I_001",
           remarks: "Username does not exist in the database."
         })
       }
 
       if (user.accountStatus.toLowerCase() !== "active") {
-        return res.status(403).json({
+        return res.json({
           code: "I_001",
           remarks: "Account is not active."
         })
       }
 
       if (!bcrypt.compareSync(password, user.password)) {
-        return res.status(401).json({
+        return res.json({
           code: "I_001",
           remarks: "Invalid credentials. Password does not match."
         })
@@ -363,7 +363,7 @@ exports.PromoteTask2DoneController = [
 
       // **T_001**: Validate Task_id
       if (typeof Task_id !== "string" || Task_id.trim() === "") {
-        return res.status(400).json({
+        return res.json({
           code: "T_001",
           remarks: "Task_id must be a non-empty string."
         })
@@ -372,7 +372,7 @@ exports.PromoteTask2DoneController = [
       // **T_002**: Check if Task_id exists in the database
       const [[task]] = await db.execute("SELECT Task_state, Task_app_Acronym, Task_notes FROM task WHERE Task_id = ?", [Task_id])
       if (!task) {
-        return res.status(404).json({
+        return res.json({
           code: "T_002",
           remarks: "Task_id not found in the database."
         })
@@ -380,7 +380,7 @@ exports.PromoteTask2DoneController = [
 
       // **T_003**: Validate task state transition
       if (task.Task_state !== "Doing") {
-        return res.status(400).json({
+        return res.json({
           code: "T_003",
           remarks: "Invalid state transition. Task must be in 'Doing' state to be promoted to 'Done'."
         })
@@ -389,7 +389,7 @@ exports.PromoteTask2DoneController = [
       // **T_002**: Validate application permissions for 'Done' state
       const [[app]] = await db.execute("SELECT App_permit_Done FROM application WHERE App_Acronym = ?", [task.Task_app_Acronym])
       if (!app || !app.App_permit_Done) {
-        return res.status(403).json({
+        return res.json({
           code: "I_002",
           remarks: "No permissions defined for the 'Done' state."
         })
@@ -430,13 +430,13 @@ exports.PromoteTask2DoneController = [
       await db.execute("UPDATE task SET Task_state = 'Done', Task_notes = ?, Task_owner = ? WHERE Task_id = ?", [updatedNotes, username, Task_id])
 
       // Success
-      return res.status(200).json({
+      return res.json({
         code: "S_001",
         remarks: "Task successfully promoted to 'Done', and notifications sent to authorized users."
       })
     } catch (error) {
       console.error("Error in PromoteTask2Done:", error)
-      return res.status(500).json({
+      return res.json({
         code: "E_001",
         remarks: "Internal server error."
       })
