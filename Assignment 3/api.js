@@ -2,6 +2,20 @@ const db = require("./models/db")
 const nodemailer = require("nodemailer")
 const bcrypt = require("bcrypt")
 
+// Message Codes
+const MsgCode = {
+  INVALID_URL: "U_001",
+  INVALID_KEYS: "P_001",
+  INVALID_PAYLOAD_TYPE: "P_002",
+  INVALID_CREDENTIALS: "I_001",
+  NOT_AUTHORIZED: "I_002",
+  INVALID_INPUT: "T_001",
+  NOT_FOUND: "T_002",
+  INVALID_STATE_CHANGE: "T_003",
+  INTERNAL_ERROR: "E_001",
+  SUCCESS: "S_001"
+}
+
 // Nodemailer Configuration
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.ethereal.email",
@@ -14,9 +28,10 @@ const transporter = nodemailer.createTransport({
 
 // Middleware for URL Validation
 const urlMiddleware = expectedUrl => (req, res, next) => {
+  console.log(req.url)
   if (req.url !== expectedUrl) {
     return res.json({
-      code: "U_001",
+      code: MsgCode.INVALID_URL,
       remarks: "Invalid URL. URL does not match the expected format."
     })
   }
@@ -49,7 +64,7 @@ exports.CreateTaskController = [
     // **P_002**: Check payload type
     if (req.headers["content-type"] !== "application/json") {
       return res.json({
-        MsgCode: "P_002",
+        code: MsgCode.INVALID_PAYLOAD_TYPE,
         remarks: "Invalid payload type. Expected application/json."
       })
     }
@@ -58,7 +73,7 @@ exports.CreateTaskController = [
     const extraKeys = Object.keys(req.body).filter(key => !allowedKeys.includes(key))
     if (extraKeys.length > 0) {
       return res.json({
-        MsgCode: "P_001",
+        code: MsgCode.INVALID_KEYS,
         remarks: `Extra keys provided in request body: ${extraKeys.join(", ")}`
       })
     }
@@ -67,7 +82,7 @@ exports.CreateTaskController = [
     const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
     if (missingKeys.length > 0) {
       return res.json({
-        MsgCode: "P_001",
+        code: MsgCode.INVALID_KEYS,
         remarks: `Missing mandatory keys: ${missingKeys.join(", ")}`
       })
     }
@@ -77,14 +92,14 @@ exports.CreateTaskController = [
     // **IAM Checks**: Validate username and password
     if (typeof username !== "string" || typeof password !== "string") {
       return res.json({
-        MsgCode: "I_001",
+        code: MsgCode.INVALID_CREDENTIALS,
         remarks: "Username or password must be a string."
       })
     }
 
     if (username.length > maxLength.username || password.length > maxLength.password) {
       return res.json({
-        MsgCode: "I_001",
+        code: MsgCode.INVALID_CREDENTIALS,
         remarks: "Username or password length exceeds maximum allowed length."
       })
     }
@@ -94,21 +109,21 @@ exports.CreateTaskController = [
 
       if (!login) {
         return res.json({
-          MsgCode: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Username does not exist in the database."
         })
       }
 
       if (login.accountStatus.toLowerCase() !== "active") {
         return res.json({
-          MsgCode: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Account is not active."
         })
       }
 
       if (!bcrypt.compareSync(password, login.password)) {
         return res.json({
-          MsgCode: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Invalid credentials. Password does not match."
         })
       }
@@ -116,7 +131,7 @@ exports.CreateTaskController = [
       // **T_002**: Validate application existence
       if (!taskAppAcronym || typeof taskAppAcronym !== "string" || taskAppAcronym.length > maxLength.task_app_acronym) {
         return res.json({
-          MsgCode: "T_002",
+          code: MsgCode.NOT_FOUND,
           remarks: "Invalid application acronym."
         })
       }
@@ -125,7 +140,7 @@ exports.CreateTaskController = [
 
       if (!app) {
         return res.json({
-          MsgCode: "T_002",
+          code: MsgCode.NOT_FOUND,
           remarks: "Application not found."
         })
       }
@@ -134,7 +149,7 @@ exports.CreateTaskController = [
       const [[{ count }]] = await db.execute("SELECT COUNT(*) AS count FROM usergroup WHERE username = ? AND user_group = ?", [username, app.App_permit_Create])
       if (count === 0) {
         return res.json({
-          MsgCode: "I_002",
+          code: MsgCode.NOT_AUTHORIZED,
           remarks: "User not authorized to create tasks in this application."
         })
       }
@@ -143,7 +158,7 @@ exports.CreateTaskController = [
       const nameRegex = /^[a-zA-Z0-9 ]{1,50}$/
       if (typeof task_name !== "string" || !nameRegex.test(task_name)) {
         return res.json({
-          MsgCode: "T_001",
+          code: MsgCode.INVALID_INPUT,
           remarks: "Invalid input for task_name."
         })
       }
@@ -154,7 +169,7 @@ exports.CreateTaskController = [
         const validPlans = planArray.map(plan => plan.Plan_MVP_name)
         if (typeof task_plan !== "string" || !validPlans.includes(task_plan)) {
           return res.json({
-            MsgCode: "T_001",
+            code: MsgCode.INVALID_INPUT,
             remarks: "Invalid or non-existent task_plan."
           })
         }
@@ -166,7 +181,7 @@ exports.CreateTaskController = [
       if (task_description) {
         if (typeof task_description !== "string" || task_description.length > maxLength.task_description) {
           return res.json({
-            MsgCode: "T_001",
+            code: MsgCode.INVALID_INPUT,
             remarks: "Invalid input for task_description."
           })
         }
@@ -198,13 +213,13 @@ exports.CreateTaskController = [
           result: {
             Task_id: newTaskId
           },
-          MsgCode: "S_001"
+          code: MsgCode.SUCCESS
         })
       } catch (transactionError) {
         await connection.rollback()
         console.error(transactionError)
         return res.json({
-          MsgCode: "E_001",
+          code: MsgCode.INTERNAL_ERROR,
           remarks: "Internal server error."
         })
       } finally {
@@ -213,7 +228,7 @@ exports.CreateTaskController = [
     } catch (error) {
       console.error(error)
       return res.json({
-        MsgCode: "E_001",
+        code: MsgCode.INTERNAL_ERROR,
         remarks: "Internal server error."
       })
     }
@@ -226,18 +241,35 @@ exports.GetTaskByStateController = [
     try {
       // Define constants
       const mandatoryKeys = ["task_app_acronym", "task_state", "username", "password"]
+      const optionalKeys = [] // If there are any optional keys, add them here
+      const allowedKeys = [...mandatoryKeys, ...optionalKeys]
       const validStates = ["Open", "To-Do", "Doing", "Done", "Closed"]
       const contentType = req.headers["content-type"]
 
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
-        return res.json({ code: "P_002", remarks: "Invalid payload type. Expected application/json." })
+        return res.json({
+          code: MsgCode.INVALID_PAYLOAD_TYPE,
+          remarks: "Invalid payload type. Expected application/json."
+        })
+      }
+
+      // **P_003**: Check for extra keys
+      const extraKeys = Object.keys(req.body).filter(key => !allowedKeys.includes(key))
+      if (extraKeys.length > 0) {
+        return res.json({
+          code: MsgCode.INVALID_KEYS,
+          remarks: `Extra keys provided in request body: ${extraKeys.join(", ")}`
+        })
       }
 
       // **P_001**: Check for missing mandatory keys
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
-        return res.json({ code: "P_001", remarks: `Missing mandatory keys: ${missingKeys.join(", ")}` })
+        return res.json({
+          code: MsgCode.INVALID_KEYS,
+          remarks: `Missing mandatory keys: ${missingKeys.join(", ")}`
+        })
       }
 
       // Extract fields from request body
@@ -245,35 +277,53 @@ exports.GetTaskByStateController = [
 
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
-        return res.json({ code: "I_001", remarks: "Username or password must be a string." })
+        return res.json({
+          code: MsgCode.INVALID_CREDENTIALS,
+          remarks: "Username or password must be a string."
+        })
       }
 
       if (username.length > 50 || password.length > 50) {
-        return res.json({ code: "I_001", remarks: "Username or password length exceeds maximum allowed length." })
+        return res.json({
+          code: MsgCode.INVALID_CREDENTIALS,
+          remarks: "Username or password length exceeds maximum allowed length."
+        })
       }
 
       // **I_001**: Verify credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE username = ?", [username])
       if (!user) {
-        return res.json({ code: "I_001", remarks: "Username does not exist in the database." })
+        return res.json({
+          code: MsgCode.INVALID_CREDENTIALS,
+          remarks: "Username does not exist in the database."
+        })
       }
       if (user.accountStatus.toLowerCase() !== "active") {
-        return res.json({ code: "I_001", remarks: "Account is not active." })
+        return res.json({
+          code: MsgCode.INVALID_CREDENTIALS,
+          remarks: "Account is not active."
+        })
       }
       if (!bcrypt.compareSync(password, user.password)) {
-        return res.json({ code: "I_001", remarks: "Invalid credentials. Password does not match." })
+        return res.json({
+          code: MsgCode.INVALID_CREDENTIALS,
+          remarks: "Invalid credentials. Password does not match."
+        })
       }
 
       // **T_002**: Validate application existence
       const [[app]] = await db.execute("SELECT App_Acronym FROM application WHERE App_Acronym = ?", [task_app_acronym])
       if (!app) {
-        return res.json({ code: "T_002", remarks: "Application not found." })
+        return res.json({
+          code: MsgCode.NOT_FOUND,
+          remarks: "Application not found."
+        })
       }
 
       // **T_001**: Validate task state
       if (!validStates.includes(task_state)) {
         return res.json({
-          code: "T_001",
+          code: MsgCode.INVALID_INPUT,
           remarks: `Invalid task state. Allowed states: ${validStates.join(", ")}`
         })
       }
@@ -283,14 +333,24 @@ exports.GetTaskByStateController = [
 
       // **T_002**: Handle no tasks found
       if (tasks.length === 0) {
-        return res.json({ code: "T_002", remarks: "No tasks found for the specified state and application." })
+        return res.json({
+          code: MsgCode.NOT_FOUND,
+          remarks: "No tasks found for the specified state and application."
+        })
       }
 
       // Success
-      return res.json({ code: "S_001", remarks: "Tasks retrieved successfully.", tasks })
+      return res.json({
+        code: MsgCode.SUCCESS,
+        remarks: "Tasks retrieved successfully.",
+        tasks
+      })
     } catch (error) {
       console.error("Internal Server Error:", error)
-      return res.json({ code: "E_001", remarks: "Internal server error." })
+      return res.json({
+        code: MsgCode.INTERNAL_ERROR,
+        remarks: "Internal server error."
+      })
     }
   }
 ]
@@ -301,13 +361,23 @@ exports.PromoteTask2DoneController = [
     try {
       // Define constants
       const mandatoryKeys = ["Task_id", "username", "password"]
+      const allowedKeys = [...mandatoryKeys]
       const contentType = req.headers["content-type"]
 
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
         return res.json({
-          code: "P_002",
+          code: MsgCode.INVALID_PAYLOAD_TYPE,
           remarks: "Invalid payload type. Expected application/json."
+        })
+      }
+
+      // **P_003**: Check for extra keys
+      const extraKeys = Object.keys(req.body).filter(key => !allowedKeys.includes(key))
+      if (extraKeys.length > 0) {
+        return res.json({
+          code: MsgCode.INVALID_KEYS,
+          remarks: `Extra keys provided in request body: ${extraKeys.join(", ")}`
         })
       }
 
@@ -315,7 +385,7 @@ exports.PromoteTask2DoneController = [
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
         return res.json({
-          code: "P_001",
+          code: MsgCode.INVALID_KEYS,
           remarks: `Missing mandatory keys: ${missingKeys.join(", ")}`
         })
       }
@@ -326,14 +396,14 @@ exports.PromoteTask2DoneController = [
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
         return res.json({
-          code: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Username or password must be a string."
         })
       }
 
       if (username.length > 50 || password.length > 50) {
         return res.json({
-          code: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Username or password length exceeds maximum allowed length."
         })
       }
@@ -342,21 +412,21 @@ exports.PromoteTask2DoneController = [
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE username = ?", [username])
       if (!user) {
         return res.json({
-          code: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Username does not exist in the database."
         })
       }
 
       if (user.accountStatus.toLowerCase() !== "active") {
         return res.json({
-          code: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Account is not active."
         })
       }
 
       if (!bcrypt.compareSync(password, user.password)) {
         return res.json({
-          code: "I_001",
+          code: MsgCode.INVALID_CREDENTIALS,
           remarks: "Invalid credentials. Password does not match."
         })
       }
@@ -364,7 +434,7 @@ exports.PromoteTask2DoneController = [
       // **T_001**: Validate Task_id
       if (typeof Task_id !== "string" || Task_id.trim() === "") {
         return res.json({
-          code: "T_001",
+          code: MsgCode.INVALID_INPUT,
           remarks: "Task_id must be a non-empty string."
         })
       }
@@ -373,7 +443,7 @@ exports.PromoteTask2DoneController = [
       const [[task]] = await db.execute("SELECT Task_state, Task_app_Acronym, Task_notes FROM task WHERE Task_id = ?", [Task_id])
       if (!task) {
         return res.json({
-          code: "T_002",
+          code: MsgCode.NOT_FOUND,
           remarks: "Task_id not found in the database."
         })
       }
@@ -381,7 +451,7 @@ exports.PromoteTask2DoneController = [
       // **T_003**: Validate task state transition
       if (task.Task_state !== "Doing") {
         return res.json({
-          code: "T_003",
+          code: MsgCode.INVALID_STATE_CHANGE,
           remarks: "Invalid state transition. Task must be in 'Doing' state to be promoted to 'Done'."
         })
       }
@@ -390,7 +460,7 @@ exports.PromoteTask2DoneController = [
       const [[app]] = await db.execute("SELECT App_permit_Done FROM application WHERE App_Acronym = ?", [task.Task_app_Acronym])
       if (!app || !app.App_permit_Done) {
         return res.json({
-          code: "I_002",
+          code: MsgCode.NOT_AUTHORIZED,
           remarks: "No permissions defined for the 'Done' state."
         })
       }
@@ -431,13 +501,13 @@ exports.PromoteTask2DoneController = [
 
       // Success
       return res.json({
-        code: "S_001",
+        code: MsgCode.SUCCESS,
         remarks: "Task successfully promoted to 'Done', and notifications sent to authorized users."
       })
     } catch (error) {
       console.error("Error in PromoteTask2Done:", error)
       return res.json({
-        code: "E_001",
+        code: MsgCode.INTERNAL_ERROR,
         remarks: "Internal server error."
       })
     }

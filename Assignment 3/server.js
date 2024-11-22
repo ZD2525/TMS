@@ -10,15 +10,12 @@ const PORT = process.env.PORT || 3000
 app.use(cookieParser())
 app.use(
   cors({
-    // Allow request from frontend origin
+    // Allow requests from frontend origin
     origin: "http://localhost:5000",
-
-    // Allow cookies to be sent with requests
-    credentials: true
+    credentials: true // Allow cookies to be sent with requests
   })
 )
 
-app.use(express.json())
 app.use(
   express.json({
     verify: (req, res, buf) => {
@@ -27,13 +24,8 @@ app.use(
   })
 )
 
-// Handle invalid routes
-app.use((req, res, next) => {
-  res.status(400).json({
-    MsgCode: "U_001",
-    remarks: "Invalid URL. URL does not match the expected format."
-  })
-})
+// Apply routes
+app.use(userRoutes)
 
 // Enhanced error handling for invalid JSON
 app.use((err, req, res, next) => {
@@ -47,7 +39,13 @@ app.use((err, req, res, next) => {
   next()
 })
 
-app.use(userRoutes)
+// Handle invalid routes (must be at the end)
+app.use((req, res) => {
+  res.status(400).json({
+    MsgCode: "U_001",
+    remarks: "Invalid URL. URL does not match the expected format."
+  })
+})
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
