@@ -432,6 +432,14 @@ exports.GetTaskbyStateController = [
       // Extract fields from request body
       const { task_app_acronym, task_state, username, password } = req.body
 
+      // Validate fields
+      if (typeof task_app_acronym !== "string" || typeof task_state !== "string") {
+        return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+      }
+      if (!validStates.includes(task_state)) {
+        return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+      }
+
       // **IAM Checks**: Validate username and password
       if (typeof username !== "string" || typeof password !== "string") {
         return res.json({
