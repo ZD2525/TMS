@@ -41,20 +41,17 @@ exports.CreateTaskController = [
   urlMiddleware("/CreateTask"), // Add case-sensitive URL middleware
   async (req, res) => {
     console.log(req.body)
-
-    // Accept both `task_app_acronym` and `appAcronym`
-    const taskAppAcronym = req.body.task_app_acronym || req.body.appAcronym
-    req.body.task_app_acronym = taskAppAcronym // Standardize to `task_app_acronym`
+    const taskAppAcronym = req.body.app_acronym
 
     // Define mandatory and optional keys
-    const mandatoryKeys = ["username", "password", "task_app_acronym", "task_name"]
+    const mandatoryKeys = ["username", "password", "app_acronym", "task_name"]
     const optionalKeys = ["task_description", "task_plan"]
     const allowedKeys = [...mandatoryKeys, ...optionalKeys]
 
     const maxLength = {
       username: 50,
       password: 50,
-      task_app_acronym: 50,
+      app_acronym: 50,
       task_name: 50,
       task_description: 255,
       task_plan: 50
@@ -120,7 +117,7 @@ exports.CreateTaskController = [
       }
 
       // **T_002**: Validate application existence (case-insensitive task_app_acronym)
-      if (!taskAppAcronym || typeof taskAppAcronym !== "string" || taskAppAcronym.length > maxLength.task_app_acronym) {
+      if (!taskAppAcronym || typeof taskAppAcronym !== "string" || taskAppAcronym.length > maxLength.app_acronym) {
         return res.json({
           MsgCode: MsgCode.NOT_FOUND
         })
