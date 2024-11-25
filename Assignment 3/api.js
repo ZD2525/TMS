@@ -301,17 +301,17 @@ exports.GetTaskByStateController = [
       // Fetch tasks by state
       const [tasks] = await db.execute("SELECT * FROM task WHERE LOWER(Task_app_Acronym) = ? AND Task_state = ?", [task_app_acronym.toLowerCase(), task_state])
 
-      // **T_002**: Handle no tasks found
+      // Handle no tasks found
       if (tasks.length === 0) {
         return res.json({
-          MsgCode: MsgCode.NOT_FOUND
+          MsgCode: MsgCode.SUCCESS
         })
       }
 
       // Success
       return res.json({
-        data: tasks,
-        MsgCode: MsgCode.SUCCESS
+        MsgCode: MsgCode.SUCCESS,
+        data: tasks
       })
     } catch (error) {
       console.error("Internal Server Error:", error)
