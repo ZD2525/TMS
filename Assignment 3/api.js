@@ -290,166 +290,137 @@ exports.GetTaskbyStateController = [
 ]
 
 exports.PromoteTask2DoneController = [
-  urlMiddleware("/PromoteTask2Done"), // Add case-sensitive URL middleware
+  // URL Validation Middleware
+  urlMiddleware("/PromoteTask2Done"),
+
+  // Controller Logic
   async (req, res) => {
     try {
       // Define constants
-      const mandatoryKeys = ["Task_id", "username", "password"]
+      const mandatoryKeys = ["username", "password", "Task_id"]
       const optionalKeys = ["task_notes"]
       const allowedKeys = [...mandatoryKeys, ...optionalKeys]
       const contentType = req.headers["content-type"]
 
+      const dataType = {
+        username: "string",
+        password: "string",
+        Task_id: "string",
+        task_notes: "string"
+      }
+
+      const maxLength = {
+        username: 50,
+        password: 255,
+        Task_id: 100,
+        task_notes: 16000000
+      }
+
+      // **1. Payload Validation**
+
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_PAYLOAD_TYPE
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_PAYLOAD_TYPE })
       }
 
       // **P_003**: Check for extra keys
       const extraKeys = Object.keys(req.body).filter(key => !allowedKeys.includes(key))
       if (extraKeys.length > 0) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_KEYS
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_KEYS })
       }
 
       // **P_001**: Check for missing mandatory keys
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_KEYS
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_KEYS })
+      }
+
+      // Validate field types and lengths
+      for (const key in req.body) {
+        if (req.body[key] && (typeof req.body[key] !== dataType[key] || req.body[key].length > maxLength[key])) {
+          return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+        }
       }
 
       // Extract fields from request body
-      const { Task_id, username, password, task_notes } = req.body
+      const { username, password, Task_id, task_notes } = req.body
 
-      // Validate `task_notes` type (Optional key)
-      if (task_notes !== undefined && typeof task_notes !== "string") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_INPUT // T_001
-        })
-      }
+      // **2. IAM Validation**
 
-      // **IAM Checks**: Validate username and password
-      if (typeof username !== "string" || typeof password !== "string") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
-
-      if (username.length > 50 || password.length > 50) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
-
-      // **I_001**: Verify credentials (case-insensitive username)
+      // Check user credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
-      if (!user) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
+      if (!user || user.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, user.password)) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS })
       }
 
-      if (user.accountStatus.toLowerCase() !== "active") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
+      // **3. Task and Application Validation**
 
-      if (!bcrypt.compareSync(password, user.password)) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
-
-      // **T_001**: Validate Task_id (case-insensitive)
-      if (typeof Task_id !== "string" || Task_id.trim() === "") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_INPUT
-        })
-      }
-
+      // Validate Task_id
       const [[task]] = await db.execute("SELECT Task_state, Task_app_Acronym, Task_notes FROM task WHERE LOWER(Task_id) = ?", [Task_id.toLowerCase()])
       if (!task) {
-        return res.json({
-          MsgCode: MsgCode.NOT_FOUND
-        })
+        return res.json({ MsgCode: MsgCode.NOT_FOUND })
       }
 
-      // **T_003**: Validate task state transition
+      // Validate state transition
       if (task.Task_state !== "Doing") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_STATE_CHANGE
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_STATE_CHANGE })
       }
 
-      // **T_002**: Validate application permissions for 'Doing' state (case-insensitive app_acronym)
+      // Validate application permissions
       const [[app]] = await db.execute("SELECT App_permit_Doing, App_permit_Done FROM application WHERE LOWER(App_Acronym) = ?", [task.Task_app_Acronym.toLowerCase()])
       if (!app || !app.App_permit_Doing) {
-        return res.json({
-          MsgCode: MsgCode.NOT_AUTHORIZED
-        })
+        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED })
       }
 
-      // **I_002**: Check if user is authorized for 'Doing' state
+      // Check user group for 'Doing' permissions
       const [[{ count }]] = await db.execute("SELECT COUNT(*) AS count FROM usergroup WHERE LOWER(username) = ? AND user_group = ?", [username.toLowerCase(), app.App_permit_Doing])
       if (count === 0) {
-        return res.json({
-          MsgCode: MsgCode.NOT_AUTHORIZED
-        })
+        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED })
       }
 
-      // Fetch users in the `App_permit_Done` group
-      const [groupUsers] = await db.execute("SELECT username FROM usergroup WHERE user_group = ?", [app.App_permit_Done])
-      const groupUsernames = groupUsers.map(user => user.username)
+      // **4. Update Task State and Notes**
 
-      // Fetch email addresses of users in the group
-      let validEmails = []
-      if (groupUsernames.length > 0) {
-        const [emails] = await db.execute(
-          `SELECT email FROM accounts WHERE LOWER(username) IN (${groupUsernames.map(() => "?").join(",")})`,
-          groupUsernames.map(username => username.toLowerCase())
-        )
-        validEmails = emails.filter(e => e.email).map(e => e.email)
-      }
-
-      // **T_003**: Update task state and notes
+      // Prepare task notes
       const timestamp = new Date().toISOString().split("T")[0]
       const additionalNotes = task_notes ? `Additional Notes:\n${task_notes.trim()}\n` : ""
       const updatedNotes = `*************\nTask promoted to 'Done' by ${username} on ${timestamp}\n${additionalNotes}${task.Task_notes}`
 
+      // Update task in the database
       await db.execute("UPDATE task SET Task_state = 'Done', Task_notes = ?, Task_owner = ? WHERE LOWER(Task_id) = ?", [updatedNotes, username, Task_id.toLowerCase()])
 
-      // Send email notification if there are valid emails
-      if (validEmails.length > 0) {
-        const mailOptions = {
-          from: "taskmanagementsystem@tms.com",
-          to: validEmails,
-          subject: `Task ${Task_id} is now in 'Done' state`,
-          text: `The task with Task ID: ${Task_id} has been promoted to 'Done' state by ${username}. Please review it.`
-        }
+      // **5. Send Email Notifications**
 
-        transporter.sendMail(mailOptions, (err, info) => {
-          if (err) {
-            console.error("Email sending error:", err)
-          } else {
-            console.log("Email sent successfully:", info.response)
+      const [groupUsers] = await db.execute("SELECT username FROM usergroup WHERE user_group = ?", [app.App_permit_Done])
+
+      if (groupUsers.length > 0) {
+        const groupUsernames = groupUsers.map(user => user.username.toLowerCase())
+        const [emails] = await db.execute(`SELECT email FROM accounts WHERE LOWER(username) IN (${groupUsernames.map(() => "?").join(",")})`, groupUsernames)
+
+        const validEmails = emails.filter(e => e.email).map(e => e.email)
+
+        if (validEmails.length > 0) {
+          const mailOptions = {
+            from: "taskmanagementsystem@tms.com",
+            to: validEmails,
+            subject: `Task ${Task_id} is now in 'Done' state`,
+            text: `The task with Task ID: ${Task_id} has been promoted to 'Done' state by ${username}. Please review it.`
           }
-        })
+
+          transporter.sendMail(mailOptions, (err, info) => {
+            if (err) {
+              console.error("Email sending error:", err)
+            } else {
+              console.log("Email sent successfully:", info.response)
+            }
+          })
+        }
       }
 
       // Success
-      return res.json({
-        MsgCode: MsgCode.SUCCESS
-      })
+      return res.json({ MsgCode: MsgCode.SUCCESS })
     } catch (error) {
       console.error("Error in PromoteTask2DoneController:", error)
-      return res.json({
-        MsgCode: MsgCode.INTERNAL_ERROR
-      })
+      return res.json({ MsgCode: MsgCode.INTERNAL_ERROR })
     }
   }
 ]
