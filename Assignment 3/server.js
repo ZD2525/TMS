@@ -30,10 +30,8 @@ app.use(userRoutes)
 // Enhanced error handling for invalid JSON
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    console.error("Invalid JSON received:", req.rawBody) // Log the raw body for debugging
-    return res.status(400).json({
-      MsgCode: "P_002",
-      remarks: "Invalid JSON format in request body."
+    return res.json({
+      MsgCode: "P_003"
     })
   }
   next()
@@ -41,9 +39,8 @@ app.use((err, req, res, next) => {
 
 // Handle invalid routes
 app.use((req, res) => {
-  res.status(400).json({
-    MsgCode: "U_001",
-    remarks: "Invalid URL. URL does not match the expected format."
+  res.json({
+    MsgCode: "U_001"
   })
 })
 
