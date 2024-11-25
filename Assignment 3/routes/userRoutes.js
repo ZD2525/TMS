@@ -4,7 +4,7 @@ const apis = require("../api.js")
 
 // Assignment 3
 router.post("/CreateTask", apis.CreateTaskController)
-router.post("/GetTaskByState", apis.GetTaskByStateController)
+router.post("/GetTaskbyState", apis.GetTaskbyStateController)
 router.put("/PromoteTask2Done", apis.PromoteTask2DoneController)
 
 module.exports = router
