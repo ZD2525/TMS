@@ -196,111 +196,95 @@ exports.CreateTaskController = [
 ]
 
 exports.GetTaskbyStateController = [
-  urlMiddleware("/GetTaskbyState"), // Add case-sensitive URL middleware
+  // URL Validation Middleware
+  urlMiddleware("/GetTaskbyState"),
+
+  // Controller Logic
   async (req, res) => {
     try {
       // Define constants
-      const mandatoryKeys = ["task_app_acronym", "task_state", "username", "password"]
+      const mandatoryKeys = ["username", "password", "task_state", "task_app_acronym"]
       const optionalKeys = [] // Add optional keys if needed
       const allowedKeys = [...mandatoryKeys, ...optionalKeys]
       const validStates = ["Open", "Todo", "Doing", "Done", "Closed"]
       const contentType = req.headers["content-type"]
 
+      const dataType = {
+        username: "string",
+        password: "string",
+        task_state: "string",
+        task_app_acronym: "string"
+      }
+
+      const maxLength = {
+        username: 50,
+        password: 255,
+        task_state: 10,
+        task_app_acronym: 50
+      }
+
+      // **1. Payload Validation**
+
       // **P_002**: Check payload type
       if (contentType !== "application/json") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_PAYLOAD_TYPE
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_PAYLOAD_TYPE })
       }
 
       // **P_003**: Check for extra keys
       const extraKeys = Object.keys(req.body).filter(key => !allowedKeys.includes(key))
       if (extraKeys.length > 0) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_KEYS
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_KEYS })
       }
 
       // **P_001**: Check for missing mandatory keys
       const missingKeys = mandatoryKeys.filter(key => !(key in req.body))
       if (missingKeys.length > 0) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_KEYS
-        })
+        return res.json({ MsgCode: MsgCode.INVALID_KEYS })
+      }
+
+      // Validate field types and lengths
+      for (const key in req.body) {
+        if (req.body[key] && (typeof req.body[key] !== dataType[key] || req.body[key].length > maxLength[key])) {
+          return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+        }
       }
 
       // Extract fields from request body
-      const { task_app_acronym, task_state, username, password } = req.body
+      const { username, password, task_state, task_app_acronym } = req.body
 
-      // Validate fields
-      if (typeof task_app_acronym !== "string" || typeof task_state !== "string") {
-        return res.json({ MsgCode: MsgCode.INVALID_INPUT })
-      }
+      // Validate task_state
       if (!validStates.includes(task_state)) {
         return res.json({ MsgCode: MsgCode.INVALID_INPUT })
       }
 
-      // **IAM Checks**: Validate username and password
-      if (typeof username !== "string" || typeof password !== "string") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
+      // **2. IAM Validation**
 
-      if (username.length > 50 || password.length > 50) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
-
-      // **I_001**: Verify credentials (case-insensitive username)
+      // Check user credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
-      if (!user) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
+      if (!user || user.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, user.password)) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS })
       }
 
-      if (user.accountStatus.toLowerCase() !== "active") {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
+      // **3. Application Validation**
 
-      if (!bcrypt.compareSync(password, user.password)) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
-        })
-      }
-
-      // **T_002**: Validate application existence (case-insensitive)
+      // Check if application exists
       const [[app]] = await db.execute("SELECT App_Acronym FROM application WHERE LOWER(App_Acronym) = ?", [task_app_acronym.toLowerCase()])
       if (!app) {
-        return res.json({
-          MsgCode: MsgCode.NOT_FOUND
-        })
+        return res.json({ MsgCode: MsgCode.NOT_FOUND })
       }
 
-      // **T_001**: Validate task state (case-sensitive)
-      if (!validStates.includes(task_state)) {
-        return res.json({
-          MsgCode: MsgCode.INVALID_INPUT
-        })
-      }
+      // **4. Fetch Tasks**
 
-      // Fetch tasks by state
       const [tasks] = await db.execute("SELECT * FROM task WHERE LOWER(Task_app_Acronym) = ? AND Task_state = ?", [task_app_acronym.toLowerCase(), task_state])
 
-      // Success: Return tasks (even if none found)
+      // Success: Return tasks
       return res.json({
         MsgCode: MsgCode.SUCCESS,
         tasks
       })
     } catch (error) {
       console.error("Error in GetTaskByStateController:", error)
-      return res.json({
-        MsgCode: MsgCode.INTERNAL_ERROR
-      })
+      return res.json({ MsgCode: MsgCode.INTERNAL_ERROR })
     }
   }
 ]
