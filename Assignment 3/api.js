@@ -93,23 +93,38 @@ exports.CreateTaskController = [
         })
       }
 
-      // Validate each field's datatype and length
-      for (const key in req.body) {
+      // **New Validation: Ensure username and password are provided and valid**
+      const { username, password, app_acronym, task_name, task_description, task_plan } = req.body
+
+      // Validate username and password (presence, datatype, and length)
+      if (!username || typeof username !== "string" || username.trim() === "" || username.length > maxLength.username) {
+        return res.json({
+          MsgCode: MsgCode.INVALID_CREDENTIALS // I_001
+        })
+      }
+
+      if (!password || typeof password !== "string" || password.trim() === "" || password.length > maxLength.password) {
+        return res.json({
+          MsgCode: MsgCode.INVALID_CREDENTIALS // I_001
+        })
+      }
+
+      // **New Validation: Validate all other fields (optional and mandatory)**
+      for (const key of allowedKeys) {
         if (req.body[key] && (typeof req.body[key] !== dataType[key] || req.body[key].length > maxLength[key])) {
           return res.json({
-            MsgCode: MsgCode.INVALID_INPUT
+            MsgCode: MsgCode.INVALID_INPUT // T_001
           })
         }
       }
 
       // **2. IAM Validation**
-      const { username, password, app_acronym, task_name, task_description, task_plan } = req.body
 
       // Validate username and password
       const [[login]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
       if (!login || login.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, login.password)) {
         return res.json({
-          MsgCode: MsgCode.INVALID_CREDENTIALS
+          MsgCode: MsgCode.INVALID_CREDENTIALS // I_001
         })
       }
 
@@ -242,38 +257,58 @@ exports.GetTaskbyStateController = [
         return res.json({ MsgCode: MsgCode.INVALID_KEYS })
       }
 
-      // Validate field types and lengths
-      for (const key in req.body) {
+      // **2. IAM Validation**
+
+      // Validate username
+      const { username, password, task_state, task_app_acronym } = req.body
+      if (
+        !username ||
+        typeof username !== "string" || // Data type check
+        username.trim() === "" ||
+        username.length > maxLength.username
+      ) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
+      }
+
+      // Validate password
+      if (
+        !password ||
+        typeof password !== "string" || // Data type check
+        password.trim() === "" ||
+        password.length > maxLength.password
+      ) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
+      }
+
+      // Check user credentials in the database
+      const [[user]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
+      if (!user || user.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, user.password)) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
+      }
+
+      // **3. Field Validation for Other Keys**
+
+      // Validate remaining fields (task_state, task_app_acronym)
+      for (const key of mandatoryKeys) {
         if (req.body[key] && (typeof req.body[key] !== dataType[key] || req.body[key].length > maxLength[key])) {
-          return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+          return res.json({ MsgCode: MsgCode.INVALID_INPUT }) // T_001
         }
       }
 
-      // Extract fields from request body
-      const { username, password, task_state, task_app_acronym } = req.body
-
       // Validate task_state
       if (!validStates.includes(task_state)) {
-        return res.json({ MsgCode: MsgCode.INVALID_INPUT })
+        return res.json({ MsgCode: MsgCode.INVALID_INPUT }) // T_001
       }
 
-      // **2. IAM Validation**
+      // **4. Application Validation**
 
-      // Check user credentials
-      const [[user]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
-      if (!user || user.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, user.password)) {
-        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS })
-      }
-
-      // **3. Application Validation**
-
-      // Check if application exists
+      // Check if the application exists
       const [[app]] = await db.execute("SELECT App_Acronym FROM application WHERE LOWER(App_Acronym) = ?", [task_app_acronym.toLowerCase()])
       if (!app) {
-        return res.json({ MsgCode: MsgCode.NOT_FOUND })
+        return res.json({ MsgCode: MsgCode.NOT_FOUND }) // T_002
       }
 
-      // **4. Fetch Tasks**
+      // **5. Fetch Tasks**
 
       const [tasks] = await db.execute("SELECT * FROM task WHERE LOWER(Task_app_Acronym) = ? AND Task_state = ?", [task_app_acronym.toLowerCase(), task_state])
 
@@ -335,50 +370,55 @@ exports.PromoteTask2DoneController = [
         return res.json({ MsgCode: MsgCode.INVALID_KEYS })
       }
 
-      // Validate field types and lengths
-      for (const key in req.body) {
-        if (req.body[key] && (typeof req.body[key] !== dataType[key] || req.body[key].length > maxLength[key])) {
-          return res.json({ MsgCode: MsgCode.INVALID_INPUT })
-        }
-      }
-
-      // Extract fields from request body
-      const { username, password, Task_id, task_notes } = req.body
-
       // **2. IAM Validation**
 
-      // Check user credentials
+      const { username, password, Task_id, task_notes } = req.body
+
+      // Ensure `username` and `password` are strings and not empty
+      if (typeof username !== "string" || username.trim() === "" || username.length > maxLength.username || typeof password !== "string" || password.trim() === "" || password.length > maxLength.password) {
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
+      }
+
+      // Validate user credentials
       const [[user]] = await db.execute("SELECT * FROM accounts WHERE LOWER(username) = ?", [username.toLowerCase()])
       if (!user || user.accountStatus.toLowerCase() !== "active" || !bcrypt.compareSync(password, user.password)) {
-        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS })
+        return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
       }
 
-      // **3. Task and Application Validation**
+      // **3. Task Validation**
 
-      // Validate Task_id
+      // Validate Task_id (datatype, length, and presence in the database)
+      if (typeof Task_id !== "string" || Task_id.trim() === "" || Task_id.length > maxLength.Task_id) {
+        return res.json({ MsgCode: MsgCode.INVALID_INPUT }) // T_001
+      }
+
       const [[task]] = await db.execute("SELECT Task_state, Task_app_Acronym, Task_notes FROM task WHERE LOWER(Task_id) = ?", [Task_id.toLowerCase()])
       if (!task) {
-        return res.json({ MsgCode: MsgCode.NOT_FOUND })
+        return res.json({ MsgCode: MsgCode.NOT_FOUND }) // T_002
       }
 
-      // Validate state transition
-      if (task.Task_state !== "Doing") {
-        return res.json({ MsgCode: MsgCode.INVALID_STATE_CHANGE })
-      }
+      // **4. Application Permissions Validation**
 
       // Validate application permissions
       const [[app]] = await db.execute("SELECT App_permit_Doing, App_permit_Done FROM application WHERE LOWER(App_Acronym) = ?", [task.Task_app_Acronym.toLowerCase()])
       if (!app || !app.App_permit_Doing) {
-        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED })
+        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED }) // T_004
       }
 
-      // Check user group for 'Doing' permissions
+      // Check if user belongs to the permitted group for 'Doing'
       const [[{ count }]] = await db.execute("SELECT COUNT(*) AS count FROM usergroup WHERE LOWER(username) = ? AND user_group = ?", [username.toLowerCase(), app.App_permit_Doing])
       if (count === 0) {
-        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED })
+        return res.json({ MsgCode: MsgCode.NOT_AUTHORIZED }) // T_004
       }
 
-      // **4. Update Task State and Notes**
+      // **5. Task State Validation**
+
+      // Validate state transition
+      if (task.Task_state !== "Doing") {
+        return res.json({ MsgCode: MsgCode.INVALID_STATE_CHANGE }) // T_003
+      }
+
+      // **6. Update Task State and Notes**
 
       // Prepare task notes
       const timestamp = new Date().toISOString().split("T")[0]
@@ -388,7 +428,7 @@ exports.PromoteTask2DoneController = [
       // Update task in the database
       await db.execute("UPDATE task SET Task_state = 'Done', Task_notes = ?, Task_owner = ? WHERE LOWER(Task_id) = ?", [updatedNotes, username, Task_id.toLowerCase()])
 
-      // **5. Send Email Notifications**
+      // **7. Send Email Notifications**
 
       const [groupUsers] = await db.execute("SELECT username FROM usergroup WHERE user_group = ?", [app.App_permit_Done])
 
