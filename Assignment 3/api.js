@@ -374,7 +374,7 @@ exports.PromoteTask2DoneController = [
 
       const { username, password, Task_id, task_notes } = req.body
 
-      // Ensure `username` and `password` are strings and not empty
+      // Ensure `username` and `password` are strings, non-empty, and within length limits
       if (typeof username !== "string" || username.trim() === "" || username.length > maxLength.username || typeof password !== "string" || password.trim() === "" || password.length > maxLength.password) {
         return res.json({ MsgCode: MsgCode.INVALID_CREDENTIALS }) // I_001
       }
@@ -395,6 +395,11 @@ exports.PromoteTask2DoneController = [
       const [[task]] = await db.execute("SELECT Task_state, Task_app_Acronym, Task_notes FROM task WHERE LOWER(Task_id) = ?", [Task_id.toLowerCase()])
       if (!task) {
         return res.json({ MsgCode: MsgCode.NOT_FOUND }) // T_002
+      }
+
+      // Validate `task_notes`
+      if (task_notes && (typeof task_notes !== "string" || task_notes.length > maxLength.task_notes)) {
+        return res.json({ MsgCode: MsgCode.INVALID_INPUT }) // T_001
       }
 
       // **4. Application Permissions Validation**
